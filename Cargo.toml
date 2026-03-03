@@ -1,0 +1,30 @@
+[package]
+name = "wowasticker"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Dioxus for pure Rust mobile UI
+dioxus = { version = "0.5", features = ["mobile"] }
+
+# Hugging Face Candle for local AI inference (Whisper GGUF)
+candle-core = "0.4"
+candle-nn = "0.4"
+candle-transformers = "0.4"
+
+# Audio capture for dictation (optional: requires system libalsa on Linux)
+cpal = { version = "0.15", optional = true }
+
+# Local database (offline-first)
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# Async runtime and utilities
+tokio = { version = "1", features = ["full"] }
+anyhow = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[features]
+default = []
+audio = ["dep:cpal"]
