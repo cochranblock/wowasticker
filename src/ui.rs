@@ -142,7 +142,7 @@ fn ScheduleCard(
     }
 }
 
-/// f132=run_dictation_flow. capture_audio → transcribe → parse_sticker → set_sticker_today.
+/// f132=run_dictation_flow. capture_audio → transcribe → extract_behavior → set_sticker_today_with_note.
 async fn run_dictation_flow(
     db: Option<Arc<Db>>,
     selected_idx: usize,
@@ -152,15 +152,21 @@ async fn run_dictation_flow(
     status.set("Capturing audio...".to_string());
     let samples = wowasticker::audio::capture_audio()?;
 
-    status.set("Transcribing via Candle...".to_string());
-    let model_path = PathBuf::from("whisper-tiny.gguf");
-    let text = ai::transcribe_audio(&model_path, &samples).await?;
+    status.set("Transcribing...".to_string());
+    let model_path = std::env::var("WOWASTICKER_WHISPER_PATH")
+        .unwrap_or_else(|_| "whisper-tiny.gguf".to_string());
+    let text = ai::transcribe_audio(PathBuf::from(&model_path).as_path(), &samples).await?;
 
     status.set("Parsing sticker value...".to_string());
-    let value = ai::parse_sticker_from_transcription(&text);
+    let result = ai::extract_behavior(&text);
 
     if let (Some(d), Some(block)) = (db, blocks.get(selected_idx)) {
-        d.set_sticker_today(block.id, value)?;
+        let note = if result.note.is_empty() {
+            None
+        } else {
+            Some(result.note.as_str())
+        };
+        d.set_sticker_today_with_note(block.id, result.score, note)?;
     }
 
     Ok(())

@@ -24,12 +24,14 @@ pub struct ScheduleBlock {
     pub sort_order: i32,
 }
 
-/// t121=StickerRecord. s3=block_id, s4=date, s5=value.
+/// t121=StickerRecord. s3=block_id, s4=date, s5=value, s9=note.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StickerRecord {
     pub block_id: i64,
     pub date: String,
     pub value: StickerValue,
+    #[serde(default)]
+    pub note: Option<String>,
 }
 
 /// t122=Student. s6=id, s7=name, s8=goal_stickers.
@@ -52,7 +54,7 @@ impl Db {
         Ok(Self(Mutex::new(conn)))
     }
 
-    /// f122=db_init. Create tables if not exist.
+    /// f122=db_init. Create tables if not exist. Migration: add note column.
     fn init(conn: &Connection) -> Result<()> {
         conn.execute_batch(
             r#"
@@ -70,12 +72,15 @@ impl Db {
                 block_id INTEGER NOT NULL,
                 date TEXT NOT NULL,
                 value INTEGER NOT NULL,
+                note TEXT,
                 PRIMARY KEY (block_id, date),
                 FOREIGN KEY (block_id) REFERENCES schedule_blocks(id)
             );
             CREATE INDEX IF NOT EXISTS idx_sticker_date ON sticker_records(date);
             "#,
         )?;
+        // Migration: add note column (ignored if exists)
+        let _ = conn.execute("ALTER TABLE sticker_records ADD COLUMN note TEXT", []);
         Ok(())
     }
 
@@ -138,14 +143,25 @@ impl Db {
 
     /// f126=set_sticker. Set sticker value for block on date.
     pub fn set_sticker(&self, block_id: i64, date: &str, value: StickerValue) -> Result<()> {
+        self.set_sticker_with_note(block_id, date, value, None)
+    }
+
+    /// f136=set_sticker_with_note. Set sticker and optional note.
+    pub fn set_sticker_with_note(
+        &self,
+        block_id: i64,
+        date: &str,
+        value: StickerValue,
+        note: Option<&str>,
+    ) -> Result<()> {
         let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         conn.execute(
             r#"
-            INSERT INTO sticker_records (block_id, date, value)
-            VALUES (?1, ?2, ?3)
-            ON CONFLICT(block_id, date) DO UPDATE SET value = ?3
+            INSERT INTO sticker_records (block_id, date, value, note)
+            VALUES (?1, ?2, ?3, ?4)
+            ON CONFLICT(block_id, date) DO UPDATE SET value = ?3, note = ?4
             "#,
-            params![block_id, date, value as i32],
+            params![block_id, date, value as i32, note],
         )?;
         Ok(())
     }
@@ -158,8 +174,18 @@ impl Db {
 
     /// f128=set_sticker_today. Set sticker for block on today.
     pub fn set_sticker_today(&self, block_id: i64, value: StickerValue) -> Result<()> {
+        self.set_sticker_today_with_note(block_id, value, None)
+    }
+
+    /// f135=set_sticker_today_with_note. Set sticker and note for today.
+    pub fn set_sticker_today_with_note(
+        &self,
+        block_id: i64,
+        value: StickerValue,
+        note: Option<&str>,
+    ) -> Result<()> {
         let date = chrono::Local::now().format("%Y-%m-%d").to_string();
-        self.set_sticker(block_id, &date, value)
+        self.set_sticker_with_note(block_id, &date, value, note)
     }
 }
 

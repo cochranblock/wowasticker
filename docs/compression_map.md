@@ -21,6 +21,9 @@ Tokenization for traceability. Aligns with kova fN/tN convention.
 | f131 | wowasticker_test | bin/wowasticker-test |
 | f132 | run_dictation_flow | ui |
 | f133 | App | ui |
+| f134 | extract_behavior | ai |
+| f135 | set_sticker_today_with_note | db |
+| f136 | set_sticker_with_note | db |
 
 ## Types (tN)
 
@@ -31,6 +34,7 @@ Tokenization for traceability. Aligns with kova fN/tN convention.
 | t121 | StickerRecord |
 | t122 | Student |
 | t123 | Db |
+| t124 | BehaviorResult |
 
 ## Struct fields (sN)
 
@@ -45,6 +49,10 @@ Tokenization for traceability. Aligns with kova fN/tN convention.
 | s6 | Student | id |
 | s7 | Student | name |
 | s8 | Student | goal_stickers |
+| s9 | StickerRecord | note |
+| s10 | BehaviorResult | score |
+| s11 | BehaviorResult | note |
+| s12 | BehaviorResult | tags |
 
 ## Test traceability
 

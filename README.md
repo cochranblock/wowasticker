@@ -58,17 +58,25 @@ sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev libasound2-dev
 
 | Module | Purpose |
 |--------|---------|
-| `db` | SQLite: students, schedule_blocks, sticker_records. `ensure_default_schedule()`, `get/set_sticker_today()` |
+| `db` | SQLite: students, schedule_blocks, sticker_records (with note). `set_sticker_today_with_note()` stores dictation text |
 | `audio` | cpal capture, 10s buffer, resample to 16kHz. Feature-gated (`--features audio`) |
-| `ai` | `transcribe_audio()` stub for Candle Whisper GGUF; `parse_sticker_from_transcription()` for 0/1/2 |
+| `ai` | `transcribe_audio()` Candle Whisper GGUF; `extract_behavior()` → score + note + tags; `parse_sticker_from_transcription()` heuristics |
 | `ui` | Dioxus App, ScheduleCard, dictation button, async flow |
 
 ## Data Flow
 
 1. User taps schedule block → selects it
-2. User taps "Dictate Observation" → `capture_audio()` (10s) → `transcribe_audio()` → `parse_sticker_from_transcription()` → `db.set_sticker_today()`
+2. User taps "Dictate Observation" → `capture_audio()` (10s) → `transcribe_audio()` → `extract_behavior()` → `db.set_sticker_today_with_note()`
 3. UI refreshes via `refresh` signal
 
 ## Model
 
-Place `whisper-tiny.gguf` in the working directory, or set path in `run_dictation_flow()`. Candle Whisper GGUF loading is stubbed; implement per [candle whisper example](https://github.com/huggingface/candle/tree/main/candle-examples/examples/whisper).
+```bash
+# Download Whisper-Tiny GGUF (Candle-compatible)
+./scripts/download-whisper.sh
+
+# Set path (optional; default: whisper-tiny.gguf in cwd)
+export WOWASTICKER_WHISPER_PATH=/path/to/whisper-tiny-q4_k.gguf
+```
+
+Candle 0.8 loads GGUF; full decode pipeline (mel→encoder→decoder→tokenizer) is scaffolded. Heuristic `extract_behavior()` runs regardless.
