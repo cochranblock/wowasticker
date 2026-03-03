@@ -4,8 +4,7 @@
 use anyhow::Result;
 use std::path::Path;
 
-/// Transcribe audio buffer (mono f32, 16 kHz) to text using Whisper-Tiny GGUF.
-/// Model path: e.g. device storage or app bundle.
+/// f119=transcribe_audio. Mono f32 16kHz → text via Whisper-Tiny GGUF.
 pub async fn transcribe_audio(path: &Path, samples: &[f32]) -> Result<String> {
     // TODO: Candle Whisper GGUF loading and inference
     // - Load model from path (whisper-tiny.gguf or similar)
@@ -21,8 +20,7 @@ pub async fn transcribe_audio(path: &Path, samples: &[f32]) -> Result<String> {
     Ok("Processed".to_string())
 }
 
-/// Parse transcribed text to assign sticker value (0, 1, or 2).
-/// Uses simple heuristics: "great", "excellent" -> 2; "ok", "good" -> 1; else 0.
+/// f120=parse_sticker_from_transcription. Heuristics: great/excellent→2, ok/good→1, else 0.
 pub fn parse_sticker_from_transcription(text: &str) -> super::db::StickerValue {
     let lower = text.to_lowercase();
     if lower.contains("great")
@@ -48,31 +46,37 @@ mod tests {
     use super::*;
     use crate::db::StickerValue;
 
+    /// f120=parse_sticker_great_returns_two
     #[test]
     fn parse_sticker_great_returns_two() {
         assert_eq!(parse_sticker_from_transcription("He did great!"), StickerValue::Two);
     }
 
+    /// f120=parse_sticker_excellent_returns_two
     #[test]
     fn parse_sticker_excellent_returns_two() {
         assert_eq!(parse_sticker_from_transcription("Excellent work"), StickerValue::Two);
     }
 
+    /// f120=parse_sticker_good_returns_one
     #[test]
     fn parse_sticker_good_returns_one() {
         assert_eq!(parse_sticker_from_transcription("Good job today"), StickerValue::One);
     }
 
+    /// f120=parse_sticker_ok_returns_one
     #[test]
     fn parse_sticker_ok_returns_one() {
         assert_eq!(parse_sticker_from_transcription("Ok, fine"), StickerValue::One);
     }
 
+    /// f120=parse_sticker_empty_returns_zero
     #[test]
     fn parse_sticker_empty_returns_zero() {
         assert_eq!(parse_sticker_from_transcription(""), StickerValue::Zero);
     }
 
+    /// f120=parse_sticker_neutral_returns_zero
     #[test]
     fn parse_sticker_neutral_returns_zero() {
         assert_eq!(parse_sticker_from_transcription("needs improvement"), StickerValue::Zero);

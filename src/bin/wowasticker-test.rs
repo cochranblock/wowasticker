@@ -1,4 +1,4 @@
-//! f61=triple_sims. Uses exopack to run cargo test 3x for wowasticker.
+//! f131=wowasticker_test. Clippy + TRIPLE SIMS via exopack f61_with_args.
 
 use std::path::Path;
 use std::process::Command;

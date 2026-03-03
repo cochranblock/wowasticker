@@ -1,5 +1,4 @@
-//! Dioxus UI components. Thumb-zone optimized, bottom-weighted layout.
-//! Swipeable schedule cards and prominent dictation button.
+//! f133=App. Dioxus UI: thumb-zone layout, schedule cards, dictation button.
 
 use dioxus::prelude::*;
 use std::path::PathBuf;
@@ -15,6 +14,7 @@ const DEFAULT_BLOCKS: &[&str] = &[
     "Lunch",
 ];
 
+/// f133=App. Root component: db, blocks, dictation flow.
 #[component]
 pub fn App() -> Element {
     let db_path = std::env::var("WOWASTICKER_DB")
@@ -142,6 +142,7 @@ fn ScheduleCard(
     }
 }
 
+/// f132=run_dictation_flow. capture_audio → transcribe → parse_sticker → set_sticker_today.
 async fn run_dictation_flow(
     db: Option<Arc<Db>>,
     selected_idx: usize,

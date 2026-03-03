@@ -12,6 +12,7 @@ mod imp {
     pub const TARGET_SAMPLE_RATE: u32 = 16000;
     pub const RECORD_DURATION_SECS: u64 = 10;
 
+    /// f129=capture_audio. Record 10s via cpal, resample to 16kHz mono.
     pub fn capture_audio() -> Result<Vec<f32>> {
         let host = cpal::default_host();
         let device = host
@@ -96,6 +97,7 @@ mod imp {
         Ok(samples)
     }
 
+    /// f130=resample_to_16k. Linear interpolate to 16kHz.
     fn resample_to_16k(samples: &[f32], from_rate: u32) -> Result<Vec<f32>> {
         let from_rate = from_rate as f64;
         let to_rate = TARGET_SAMPLE_RATE as f64;
@@ -123,6 +125,7 @@ mod imp {
 #[cfg(feature = "audio")]
 pub use imp::*;
 
+/// f129=capture_audio (stub when audio feature disabled).
 #[cfg(not(feature = "audio"))]
 pub fn capture_audio() -> anyhow::Result<Vec<f32>> {
     anyhow::bail!("audio feature not enabled; build with --features audio")

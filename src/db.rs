@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::Mutex;
 
-/// Sticker value: 0 (none), 1 (partial), 2 (full)
+/// t119=StickerValue. 0=none, 1=partial, 2=full.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum StickerValue {
     #[default]
@@ -16,7 +16,7 @@ pub enum StickerValue {
     Two = 2,
 }
 
-/// A schedule block (e.g. Cultural Arts, Math, Recess)
+/// t120=ScheduleBlock. s0=id, s1=name, s2=sort_order.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScheduleBlock {
     pub id: i64,
@@ -24,15 +24,15 @@ pub struct ScheduleBlock {
     pub sort_order: i32,
 }
 
-/// Sticker record for a block on a given day
+/// t121=StickerRecord. s3=block_id, s4=date, s5=value.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StickerRecord {
     pub block_id: i64,
-    pub date: String, // YYYY-MM-DD
+    pub date: String,
     pub value: StickerValue,
 }
 
-/// Student profile
+/// t122=Student. s6=id, s7=name, s8=goal_stickers.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Student {
     pub id: i64,
@@ -40,11 +40,11 @@ pub struct Student {
     pub goal_stickers: i32,
 }
 
-/// Database handle. Thread-safe via Mutex.
+/// t123=Db. Thread-safe via Mutex.
 pub struct Db(Mutex<Connection>);
 
 impl Db {
-    /// Open or create database at path
+    /// f121=db_open. Open or create database at path.
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let conn = Connection::open(path.as_ref())
             .with_context(|| format!("open db: {}", path.as_ref().display()))?;
@@ -52,6 +52,7 @@ impl Db {
         Ok(Self(Mutex::new(conn)))
     }
 
+    /// f122=db_init. Create tables if not exist.
     fn init(conn: &Connection) -> Result<()> {
         conn.execute_batch(
             r#"
@@ -78,7 +79,7 @@ impl Db {
         Ok(())
     }
 
-    /// Insert default schedule blocks if none exist
+    /// f123=ensure_default_schedule. Insert default blocks if none exist.
     pub fn ensure_default_schedule(&self) -> Result<()> {
         let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         let count: i64 = conn.query_row("SELECT COUNT(*) FROM schedule_blocks", [], |r| r.get(0))?;
@@ -101,7 +102,7 @@ impl Db {
         Ok(())
     }
 
-    /// List schedule blocks
+    /// f124=list_blocks. List schedule blocks by sort_order.
     pub fn list_blocks(&self) -> Result<Vec<ScheduleBlock>> {
         let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         let mut stmt = conn.prepare(
@@ -117,7 +118,7 @@ impl Db {
         rows.collect::<Result<Vec<_>, _>>().map_err(Into::into)
     }
 
-    /// Get sticker value for a block on a date
+    /// f125=get_sticker. Get sticker value for block on date.
     pub fn get_sticker(&self, block_id: i64, date: &str) -> Result<StickerValue> {
         let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         let mut stmt = conn.prepare(
@@ -135,7 +136,7 @@ impl Db {
         })
     }
 
-    /// Set sticker value for a block on a date
+    /// f126=set_sticker. Set sticker value for block on date.
     pub fn set_sticker(&self, block_id: i64, date: &str, value: StickerValue) -> Result<()> {
         let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         conn.execute(
@@ -149,13 +150,13 @@ impl Db {
         Ok(())
     }
 
-    /// Get sticker value for a block on today
+    /// f127=get_sticker_today. Get sticker for block on today.
     pub fn get_sticker_today(&self, block_id: i64) -> Result<StickerValue> {
         let date = chrono::Local::now().format("%Y-%m-%d").to_string();
         self.get_sticker(block_id, &date)
     }
 
-    /// Set sticker for today
+    /// f128=set_sticker_today. Set sticker for block on today.
     pub fn set_sticker_today(&self, block_id: i64, value: StickerValue) -> Result<()> {
         let date = chrono::Local::now().format("%Y-%m-%d").to_string();
         self.set_sticker(block_id, &date, value)
@@ -166,6 +167,7 @@ impl Db {
 mod tests {
     use super::*;
 
+    /// f121/f123=db_open_and_ensure_schedule
     #[test]
     fn db_open_and_ensure_schedule() {
         let tmp = tempfile::NamedTempFile::new().unwrap();
@@ -177,6 +179,7 @@ mod tests {
         assert_eq!(blocks[0].name, "Cultural Arts");
     }
 
+    /// f125/f126=db_set_and_get_sticker
     #[test]
     fn db_set_and_get_sticker() {
         let tmp = tempfile::NamedTempFile::new().unwrap();
