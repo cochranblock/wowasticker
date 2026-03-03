@@ -1,11 +1,10 @@
 //! Dioxus UI components. Thumb-zone optimized, bottom-weighted layout.
 //! Swipeable schedule cards and prominent dictation button.
 
-use crate::ai;
-use crate::db::{Db, ScheduleBlock, StickerValue};
 use dioxus::prelude::*;
 use std::path::PathBuf;
 use std::sync::Arc;
+use wowasticker::{ai, db::Db, db::ScheduleBlock, db::StickerValue};
 
 /// Default schedule blocks (used before DB init)
 const DEFAULT_BLOCKS: &[&str] = &[
@@ -150,7 +149,7 @@ async fn run_dictation_flow(
     status: Signal<String>,
 ) -> anyhow::Result<()> {
     status.set("Capturing audio...".to_string());
-    let samples = crate::audio::capture_audio()?;
+    let samples = wowasticker::audio::capture_audio()?;
 
     status.set("Transcribing via Candle...".to_string());
     let model_path = PathBuf::from("whisper-tiny.gguf");

@@ -3,12 +3,10 @@
 
 #![allow(non_snake_case)]
 
-mod ai;
-mod audio;
-mod db;
 mod ui;
 
 use dioxus::prelude::*;
+use wowasticker::ui;
 
 fn main() {
     dioxus::launch(ui::App);

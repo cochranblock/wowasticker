@@ -8,17 +8,12 @@ use std::path::Path;
 use std::sync::Mutex;
 
 /// Sticker value: 0 (none), 1 (partial), 2 (full)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum StickerValue {
+    #[default]
     Zero = 0,
     One = 1,
     Two = 2,
-}
-
-impl Default for StickerValue {
-    fn default() -> Self {
-        Self::Zero
-    }
 }
 
 /// A schedule block (e.g. Cultural Arts, Math, Recess)
@@ -164,5 +159,34 @@ impl Db {
     pub fn set_sticker_today(&self, block_id: i64, value: StickerValue) -> Result<()> {
         let date = chrono::Local::now().format("%Y-%m-%d").to_string();
         self.set_sticker(block_id, &date, value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn db_open_and_ensure_schedule() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = Db::open(&path).unwrap();
+        db.ensure_default_schedule().unwrap();
+        let blocks = db.list_blocks().unwrap();
+        assert!(!blocks.is_empty());
+        assert_eq!(blocks[0].name, "Cultural Arts");
+    }
+
+    #[test]
+    fn db_set_and_get_sticker() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = Db::open(&path).unwrap();
+        db.ensure_default_schedule().unwrap();
+        let blocks = db.list_blocks().unwrap();
+        let block_id = blocks[0].id;
+        let date = "2026-03-03";
+        db.set_sticker(block_id, date, StickerValue::Two).unwrap();
+        assert_eq!(db.get_sticker(block_id, date).unwrap(), StickerValue::Two);
     }
 }

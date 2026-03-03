@@ -23,14 +23,14 @@ pub async fn transcribe_audio(path: &Path, samples: &[f32]) -> Result<String> {
 
 /// Parse transcribed text to assign sticker value (0, 1, or 2).
 /// Uses simple heuristics: "great", "excellent" -> 2; "ok", "good" -> 1; else 0.
-pub fn parse_sticker_from_transcription(text: &str) -> crate::db::StickerValue {
+pub fn parse_sticker_from_transcription(text: &str) -> super::db::StickerValue {
     let lower = text.to_lowercase();
     if lower.contains("great")
         || lower.contains("excellent")
         || lower.contains("awesome")
         || lower.contains("perfect")
     {
-        return crate::db::StickerValue::Two;
+        return super::db::StickerValue::Two;
     }
     if lower.contains("good")
         || lower.contains("ok")
@@ -38,7 +38,43 @@ pub fn parse_sticker_from_transcription(text: &str) -> crate::db::StickerValue {
         || lower.contains("fine")
         || lower.contains("did well")
     {
-        return crate::db::StickerValue::One;
+        return super::db::StickerValue::One;
     }
-    crate::db::StickerValue::Zero
+    super::db::StickerValue::Zero
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::StickerValue;
+
+    #[test]
+    fn parse_sticker_great_returns_two() {
+        assert_eq!(parse_sticker_from_transcription("He did great!"), StickerValue::Two);
+    }
+
+    #[test]
+    fn parse_sticker_excellent_returns_two() {
+        assert_eq!(parse_sticker_from_transcription("Excellent work"), StickerValue::Two);
+    }
+
+    #[test]
+    fn parse_sticker_good_returns_one() {
+        assert_eq!(parse_sticker_from_transcription("Good job today"), StickerValue::One);
+    }
+
+    #[test]
+    fn parse_sticker_ok_returns_one() {
+        assert_eq!(parse_sticker_from_transcription("Ok, fine"), StickerValue::One);
+    }
+
+    #[test]
+    fn parse_sticker_empty_returns_zero() {
+        assert_eq!(parse_sticker_from_transcription(""), StickerValue::Zero);
+    }
+
+    #[test]
+    fn parse_sticker_neutral_returns_zero() {
+        assert_eq!(parse_sticker_from_transcription("needs improvement"), StickerValue::Zero);
+    }
 }
