@@ -38,7 +38,9 @@ anyhow = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-exopack = { path = "../exopack", optional = true, features = ["triple_sims"] }
+exopack = { path = "../kova/exopack", optional = true, features = ["triple_sims"] }
+tokenizers = { version = "0.19", optional = true }
+rand = { version = "0.8", optional = true }
 
 [dev-dependencies]
 tempfile = "3"
@@ -46,6 +48,6 @@ tempfile = "3"
 [features]
 default = ["dioxus", "candle", "audio"]
 dioxus = ["dep:dioxus"]
-candle = ["dep:candle-core", "dep:candle-nn", "dep:candle-transformers"]
+candle = ["dep:candle-core", "dep:candle-nn", "dep:candle-transformers", "dep:tokenizers", "dep:rand"]
 audio = ["dep:cpal"]
 tests = ["exopack"]
