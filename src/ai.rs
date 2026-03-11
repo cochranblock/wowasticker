@@ -27,6 +27,7 @@ pub async fn transcribe_audio(path: &Path, samples: &[f32]) -> Result<String> {
     Ok("Processed".to_string())
 }
 
+/// f137=transcribe_audio_sync. Load GGUF, run mel→encoder→decoder→tokenizer (candle).
 #[cfg(feature = "candle")]
 fn transcribe_audio_sync(path: &Path, samples: &[f32]) -> Result<String> {
     use candle_transformers::models::whisper::{quantized_model::Whisper, Config};
@@ -61,6 +62,7 @@ pub fn extract_behavior(text: &str) -> BehaviorResult {
     BehaviorResult { score, note, tags }
 }
 
+/// f138=extract_tags. Heuristic tag extraction from transcription.
 fn extract_tags(text: &str) -> Vec<String> {
     let lower = text.to_lowercase();
     let mut tags = Vec::new();
@@ -160,6 +162,72 @@ mod tests {
         );
     }
 
+    /// f120=parse_sticker_awesome_returns_two
+    #[test]
+    fn parse_sticker_awesome_returns_two() {
+        assert_eq!(parse_sticker_from_transcription("Awesome job!"), StickerValue::Two);
+    }
+
+    /// f120=parse_sticker_perfect_returns_two
+    #[test]
+    fn parse_sticker_perfect_returns_two() {
+        assert_eq!(parse_sticker_from_transcription("Perfect day"), StickerValue::Two);
+    }
+
+    /// f120=parse_sticker_fine_returns_one
+    #[test]
+    fn parse_sticker_fine_returns_one() {
+        assert_eq!(parse_sticker_from_transcription("Did fine today"), StickerValue::One);
+    }
+
+    /// f120=parse_sticker_did_well_returns_one
+    #[test]
+    fn parse_sticker_did_well_returns_one() {
+        assert_eq!(parse_sticker_from_transcription("He did well"), StickerValue::One);
+    }
+
+    /// f120=parse_sticker_acceptable_returns_one
+    #[test]
+    fn parse_sticker_acceptable_returns_one() {
+        assert_eq!(parse_sticker_from_transcription("Acceptable behavior"), StickerValue::One);
+    }
+
+    /// f120=parse_sticker_elopement_returns_zero
+    #[test]
+    fn parse_sticker_elopement_returns_zero() {
+        assert_eq!(
+            parse_sticker_from_transcription("Elopement incident"),
+            StickerValue::Zero
+        );
+    }
+
+    /// f120=parse_sticker_combative_returns_zero
+    #[test]
+    fn parse_sticker_combative_returns_zero() {
+        assert_eq!(
+            parse_sticker_from_transcription("Combative with staff"),
+            StickerValue::Zero
+        );
+    }
+
+    /// f120=parse_sticker_no_work_returns_zero
+    #[test]
+    fn parse_sticker_no_work_returns_zero() {
+        assert_eq!(
+            parse_sticker_from_transcription("No work completed"),
+            StickerValue::Zero
+        );
+    }
+
+    /// f120=parse_sticker_didnt_returns_zero
+    #[test]
+    fn parse_sticker_didnt_returns_zero() {
+        assert_eq!(
+            parse_sticker_from_transcription("He didn't participate"),
+            StickerValue::Zero
+        );
+    }
+
     /// f134=extract_behavior
     #[test]
     fn extract_behavior_returns_score_and_note() {
@@ -167,5 +235,31 @@ mod tests {
         assert_eq!(r.score, StickerValue::Two);
         assert_eq!(r.note, "He did great today!");
         assert!(r.tags.contains(&"positive".to_string()));
+    }
+
+    /// f138=extract_tags via extract_behavior: elopement, refusal, combative
+    #[test]
+    fn extract_behavior_tags_elopement_refusal_combative() {
+        let r = extract_behavior("Elopement and refused to stay in. Combative.");
+        assert!(r.tags.contains(&"elopement".to_string()));
+        assert!(r.tags.contains(&"refusal".to_string()));
+        assert!(r.tags.contains(&"combative".to_string()));
+    }
+
+    /// f138=extract_tags via extract_behavior: stay_in_space, finish_work
+    #[test]
+    fn extract_behavior_tags_stay_in_finish() {
+        let r = extract_behavior("Had to stay in his seat and helped finish the work.");
+        assert!(r.tags.contains(&"stay_in_space".to_string()));
+        assert!(r.tags.contains(&"finish_work".to_string()));
+    }
+
+    /// f119=transcribe_audio placeholder when no model
+    #[tokio::test]
+    async fn transcribe_audio_returns_processed_without_model() {
+        let path = std::path::Path::new("/nonexistent/whisper.gguf");
+        let samples = vec![0.0f32; 1600]; // 0.1s at 16kHz
+        let text = super::transcribe_audio(path, &samples).await.unwrap();
+        assert_eq!(text, "Processed");
     }
 }

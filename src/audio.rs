@@ -130,3 +130,16 @@ pub use imp::*;
 pub fn capture_audio() -> anyhow::Result<Vec<f32>> {
     anyhow::bail!("audio feature not enabled; build with --features audio")
 }
+
+#[cfg(all(test, not(feature = "audio")))]
+mod tests {
+    use super::*;
+
+    /// f129=capture_audio stub returns Err when audio disabled
+    #[test]
+    fn capture_audio_stub_returns_err() {
+        let r = capture_audio();
+        assert!(r.is_err());
+        assert!(r.unwrap_err().to_string().contains("audio feature not enabled"));
+    }
+}

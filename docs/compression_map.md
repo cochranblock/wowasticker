@@ -24,6 +24,9 @@ Tokenization for traceability. Aligns with kova fN/tN convention.
 | f134 | extract_behavior | ai |
 | f135 | set_sticker_today_with_note | db |
 | f136 | set_sticker_with_note | db |
+| f137 | transcribe_audio_sync | ai (candle) |
+| f138 | extract_tags | ai |
+| f139 | ScheduleCard | ui |
 
 ## Types (tN)
 

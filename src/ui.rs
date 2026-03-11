@@ -3,7 +3,16 @@
 use dioxus::prelude::*;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 use wowasticker::{ai, db::Db, db::ScheduleBlock, db::StickerValue};
+
+fn sticker_str(v: StickerValue) -> &'static str {
+    match v {
+        StickerValue::Zero => "○",
+        StickerValue::One => "●",
+        StickerValue::Two => "●●",
+    }
+}
 
 /// Default schedule blocks (used before DB init)
 const DEFAULT_BLOCKS: &[&str] = &[
@@ -22,8 +31,9 @@ pub fn App() -> Element {
     let db = use_signal(|| None::<Arc<Db>>);
     let blocks = use_signal(|| Vec::<ScheduleBlock>::new());
     let selected_block = use_signal(|| 0usize);
-    let status = use_signal(|| "Ready to record observation...".to_string());
+    let status = use_signal(|| "Tap a block, then dictate.".to_string());
     let processing = use_signal(|| false);
+    let last_error = use_signal(|| None::<String>);
     let refresh = use_signal(|| 0u32);
 
     use_effect(move || {
@@ -77,34 +87,54 @@ pub fn App() -> Element {
 
             div {
                 style: "padding: 20px 0; border-top: 1px solid #ccc; flex-shrink: 0;",
-                p { style: "margin: 0 0 12px 0; font-size: 0.9rem; color: #666;", "{status}" }
+                p {
+                    style: "margin: 0 0 12px 0; font-size: 0.9rem; color: {if last_error().is_some() { \"#c62828\" } else { \"#666\" }};",
+                    "{match () {
+                        _ if last_error().is_some() => last_error().as_deref().unwrap_or(\"Error\"),
+                        _ if blocks.read().is_empty() && !processing() => \"Loading schedule...\",
+                        _ => status().as_str(),
+                    }}"
+                }
                 button {
-                    style: "width: 100%; padding: 20px; font-size: 1.2rem; background: #007AFF; color: white; border-radius: 12px; border: none; cursor: pointer;",
-                    disabled: processing(),
+                    style: "width: 100%; padding: 20px; font-size: 1.2rem; background: {if last_error().is_some() { \"#e65100\" } else { \"#007AFF\" }}; color: white; border-radius: 12px; border: none; cursor: pointer;",
+                    disabled: processing() || blocks.read().is_empty(),
                     onclick: move |_| {
+                        last_error.set(None);
                         processing.set(true);
-                        status.set("Recording 10 seconds...".to_string());
                         let db_clone = db();
                         let sel = selected_block();
                         let blocks_clone = blocks.read().clone();
+                        let status_sig = status;
+                        let last_err_sig = last_error;
+                        let refresh_sig = refresh;
                         spawn(async move {
-                            match run_dictation_flow(db_clone, sel, &blocks_clone, status).await {
-                                Ok(()) => {
-                                    status.set("Done. Sticker updated.".to_string());
-                                    refresh.set(refresh() + 1);
+                            match run_dictation_flow(db_clone, sel, &blocks_clone, status_sig).await {
+                                Ok(saved) => {
+                                    last_err_sig.set(None);
+                                    if let Some((name, score)) = saved {
+                                        status_sig.set(format!("{}: {} — saved!", name, sticker_str(score)));
+                                    } else {
+                                        status_sig.set("Done.".to_string());
+                                    }
+                                    refresh_sig.set(refresh_sig() + 1);
                                 }
-                                Err(e) => status.set(format!("Error: {}", e)),
+                                Err(e) => {
+                                    let msg = format!("Error: {}", e);
+                                    status_sig.set(msg.clone());
+                                    last_err_sig.set(Some(msg));
+                                }
                             }
                             processing.set(false);
                         });
                     },
-                    "🎤 Dictate Observation"
+                    "{if last_error().is_some() { \"🔄 Retry\" } else { \"🎤 Dictate Observation\" }}"
                 }
             }
         }
     }
 }
 
+/// f139=ScheduleCard. Block card with sticker display, selection.
 #[component]
 fn ScheduleCard(
     block: ScheduleBlock,
@@ -148,9 +178,21 @@ async fn run_dictation_flow(
     selected_idx: usize,
     blocks: &[ScheduleBlock],
     status: Signal<String>,
-) -> anyhow::Result<()> {
-    status.set("Capturing audio...".to_string());
-    let samples = wowasticker::audio::capture_audio()?;
+) -> anyhow::Result<Option<(String, StickerValue)>> {
+    status.set("Recording... 10s".to_string());
+    let (tx, rx) = std::sync::mpsc::channel();
+    let countdown_handle = std::thread::spawn(move || {
+        for i in (1..=10).rev() {
+            status.set(format!("Recording... {}s", i));
+            std::thread::sleep(Duration::from_secs(1));
+        }
+        let _ = tx.send(());
+    });
+    let samples = tokio::task::spawn_blocking(wowasticker::audio::capture_audio)
+        .await
+        .map_err(|e| anyhow::anyhow!("spawn_blocking: {}", e))??;
+    let _ = rx.recv();
+    countdown_handle.join().unwrap();
 
     status.set("Transcribing...".to_string());
     let model_path = std::env::var("WOWASTICKER_WHISPER_PATH")
@@ -167,7 +209,8 @@ async fn run_dictation_flow(
             Some(result.note.as_str())
         };
         d.set_sticker_today_with_note(block.id, result.score, note)?;
+        return Ok(Some((block.name.clone(), result.score)));
     }
 
-    Ok(())
+    Ok(None)
 }

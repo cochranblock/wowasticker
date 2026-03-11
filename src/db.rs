@@ -218,4 +218,57 @@ mod tests {
         db.set_sticker(block_id, date, StickerValue::Two).unwrap();
         assert_eq!(db.get_sticker(block_id, date).unwrap(), StickerValue::Two);
     }
+
+    /// f125=get_sticker returns Zero when no record
+    #[test]
+    fn db_get_sticker_returns_zero_when_no_record() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = Db::open(&path).unwrap();
+        db.ensure_default_schedule().unwrap();
+        let blocks = db.list_blocks().unwrap();
+        let block_id = blocks[0].id;
+        assert_eq!(db.get_sticker(block_id, "2026-01-01").unwrap(), StickerValue::Zero);
+    }
+
+    /// f123=ensure_default_schedule idempotent
+    #[test]
+    fn db_ensure_default_schedule_idempotent() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = Db::open(&path).unwrap();
+        db.ensure_default_schedule().unwrap();
+        db.ensure_default_schedule().unwrap();
+        let blocks = db.list_blocks().unwrap();
+        assert_eq!(blocks.len(), 5);
+    }
+
+    /// f136=set_sticker_with_note with note
+    #[test]
+    fn db_set_sticker_with_note() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = Db::open(&path).unwrap();
+        db.ensure_default_schedule().unwrap();
+        let blocks = db.list_blocks().unwrap();
+        let block_id = blocks[0].id;
+        let date = "2026-03-03";
+        db.set_sticker_with_note(block_id, date, StickerValue::One, Some("Good focus")).unwrap();
+        db.set_sticker(block_id, date, StickerValue::Two).unwrap(); // overwrite value
+        assert_eq!(db.get_sticker(block_id, date).unwrap(), StickerValue::Two);
+    }
+
+    /// f135=set_sticker_today_with_note
+    #[test]
+    fn db_set_sticker_today_with_note() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = Db::open(&path).unwrap();
+        db.ensure_default_schedule().unwrap();
+        let blocks = db.list_blocks().unwrap();
+        let block_id = blocks[0].id;
+        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        db.set_sticker_today_with_note(block_id, StickerValue::Two, Some("Excellent!")).unwrap();
+        assert_eq!(db.get_sticker(block_id, &today).unwrap(), StickerValue::Two);
+    }
 }

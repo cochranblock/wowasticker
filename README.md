@@ -47,6 +47,18 @@ cargo build -p wowasticker --features audio
 cargo build -p wowasticker
 ```
 
+**macOS:** Build with GTK/WebKit (via Homebrew) or without audio:
+
+```bash
+# With audio (requires portaudio or system audio libs)
+cargo build -p wowasticker --features audio
+
+# Without audio (UI + DB only)
+cargo build -p wowasticker --release
+```
+
+Audio may require different deps than Linux; `--features audio` is optional.
+
 **Linux deps (Ubuntu/Debian):**
 ```bash
 sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev libasound2-dev
