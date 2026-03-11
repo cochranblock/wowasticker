@@ -1,3 +1,5 @@
+// Unlicense — cochranblock.org
+// Contributors: GotEmCoach, KOVA, Claude Opus 4.6, SuperNinja, Composer 1.5, Google Gemini Pro 3
 //! Local SQLite persistence for student profiles, schedules, and sticker counts.
 //! Offline-first: all data stored on-device.
 

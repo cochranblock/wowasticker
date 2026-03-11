@@ -1,3 +1,5 @@
+// Unlicense — cochranblock.org
+// Contributors: GotEmCoach, KOVA, Claude Opus 4.6, SuperNinja, Composer 1.5, Google Gemini Pro 3
 //! f133=App. Dioxus UI: thumb-zone layout, schedule cards, dictation button.
 
 use dioxus::prelude::*;

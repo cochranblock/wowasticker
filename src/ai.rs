@@ -1,3 +1,5 @@
+// Unlicense — cochranblock.org
+// Contributors: GotEmCoach, KOVA, Claude Opus 4.6, SuperNinja, Composer 1.5, Google Gemini Pro 3
 //! Local AI inference via Candle. Loads quantized Whisper .gguf from device storage.
 //! Minimal memory footprint for mobile thermal constraints.
 

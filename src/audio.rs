@@ -1,3 +1,5 @@
+// Unlicense — cochranblock.org
+// Contributors: GotEmCoach, KOVA, Claude Opus 4.6, SuperNinja, Composer 1.5, Google Gemini Pro 3
 //! Audio capture via cpal. Records 10-second voice buffers for dictation.
 //! Resamples to 16 kHz mono for Whisper input.
 //! Enable with `--features audio` (requires libalsa on Linux).

@@ -1,3 +1,5 @@
+// Unlicense — cochranblock.org
+// Contributors: GotEmCoach, KOVA, Claude Opus 4.6, SuperNinja, Composer 1.5, Google Gemini Pro 3
 //! f131=wowasticker_test. Clippy + TRIPLE SIMS via exopack f61_with_args.
 
 use std::path::Path;
