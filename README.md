@@ -81,10 +81,10 @@ sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev libasound2-dev
 
 | Module | Purpose |
 |--------|---------|
-| `db` | SQLite: students, schedule_blocks, sticker_records (with note). `set_sticker_today_with_note()` stores dictation text |
+| `db` | SQLite: students, schedule_blocks, sticker_records (with note). Student CRUD, `count_stickers_today()` for progress, `get_sticker_record()` for full records |
 | `audio` | cpal capture, 10s buffer, resample to 16kHz. Feature-gated (`--features audio`) |
 | `ai` | `transcribe_audio()` Candle Whisper GGUF; `extract_behavior()` → score + note + tags; `extract_tags()` heuristic tag extraction; `parse_sticker_from_transcription()` heuristics |
-| `ui` | Dioxus App, ScheduleCard, `run_dictation_flow()` (capture→transcribe→parse→save), dictation button with countdown + retry |
+| `ui` | Dioxus App, ScheduleCard, `run_dictation_flow()` (capture→transcribe→parse→save), dynamic goal from student, sticker progress counter, transcription display with tags, countdown + retry |
 
 ## Data Flow
 

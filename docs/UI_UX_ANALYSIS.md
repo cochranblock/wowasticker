@@ -43,18 +43,15 @@ Luka's Sticker Chart is a mobile-first behavioral tracking app: parents/educator
 - **Implemented:** Default status text reads "Tap a block, then dictate."
 - **Remaining:** Consider visual tutorial or animation for first-time users
 
-### 3. **Goal is static**
-- "Goal: 15 Stickers" is hardcoded; no per-student or per-day context
-- **Suggestion:** Pull from `Student.goal_stickers` or make configurable
+### 3. ~~Goal is static~~ **RESOLVED**
+- **Implemented:** Goal pulled from `Student.goal_stickers` via `get_student()`. Progress counter shows "4 / 15 Stickers" with green "Goal met!" state
 
 ### 4. ~~Error recovery is minimal~~ **RESOLVED**
 - **Implemented:** Button changes to "Retry" (orange) on error. `last_error` signal drives visual state
 - **Remaining:** Surface common causes (e.g. mic permission denied)
 
-### 5. **Empty state is placeholder-only**
-- When DB isn’t ready, `DEFAULT_BLOCKS` renders gray boxes with no interactivity
-- **Risk:** Looks like real data; user may try to dictate into a non-selected block
-- **Suggestion:** Skeleton or "Loading schedule..." instead of fake blocks
+### 5. ~~Empty state is placeholder-only~~ **RESOLVED**
+- **Implemented:** Replaced fake gray blocks with centered "Loading schedule..." text. Dictate button disabled until blocks load
 
 ### 6. ~~No confirmation of what was saved~~ **RESOLVED**
 - **Implemented:** Status shows "Math: ●● — saved!" with block name + sticker score after save
@@ -73,10 +70,8 @@ Luka's Sticker Chart is a mobile-first behavioral tracking app: parents/educator
 - Mis-dictation or wrong block → no way to revert
 - **Suggestion:** Undo snackbar after "Done" or edit flow for last entry
 
-### 10. **Transcription opacity**
-- User never sees what was transcribed or how it was interpreted
-- **Risk:** Trust issues if score feels wrong
-- **Suggestion:** Expandable "What we heard" / "Why this score" after save (optional, for power users)
+### 10. ~~Transcription opacity~~ **RESOLVED**
+- **Implemented:** After save, status shows transcription text and behavior tags: `Math: ●● saved! — "He did great today!" [positive]`
 
 ---
 
@@ -88,8 +83,8 @@ Luka's Sticker Chart is a mobile-first behavioral tracking app: parents/educator
 | Selection UX   | ✅     | Done     |
 | Recording feedback | ✅  | Done     |
 | Error recovery| ✅     | Done     |
-| Goal display   | ⚠️     | Low      |
-| Empty/loading  | ⚠️     | Medium   |
+| Goal display   | ✅     | Done     |
+| Empty/loading  | ✅     | Done     |
 | Confirmation   | ✅     | Done     |
 | Accessibility  | ❌     | High     |
 | Undo           | ❌     | Medium   |

@@ -189,6 +189,74 @@ impl Db {
         let date = chrono::Local::now().format("%Y-%m-%d").to_string();
         self.set_sticker_with_note(block_id, &date, value, note)
     }
+
+    /// f140=ensure_default_student. Create default student if none exists.
+    pub fn ensure_default_student(&self) -> Result<()> {
+        let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
+        let count: i64 =
+            conn.query_row("SELECT COUNT(*) FROM students", [], |r| r.get(0))?;
+        if count > 0 {
+            return Ok(());
+        }
+        conn.execute(
+            "INSERT INTO students (name, goal_stickers) VALUES (?1, ?2)",
+            params!["Luka", 15],
+        )?;
+        Ok(())
+    }
+
+    /// f141=get_student. Get first student (single-student mode).
+    pub fn get_student(&self) -> Result<Option<Student>> {
+        let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
+        let mut stmt =
+            conn.prepare("SELECT id, name, goal_stickers FROM students LIMIT 1")?;
+        let mut rows = stmt.query([])?;
+        match rows.next()? {
+            Some(r) => Ok(Some(Student {
+                id: r.get(0)?,
+                name: r.get(1)?,
+                goal_stickers: r.get(2)?,
+            })),
+            None => Ok(None),
+        }
+    }
+
+    /// f142=count_stickers_today. Sum sticker values for today across all blocks.
+    pub fn count_stickers_today(&self) -> Result<i32> {
+        let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
+        let date = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let total: i32 = conn.query_row(
+            "SELECT COALESCE(SUM(value), 0) FROM sticker_records WHERE date = ?1",
+            params![date],
+            |r| r.get(0),
+        )?;
+        Ok(total)
+    }
+
+    /// f143=get_sticker_record. Get full StickerRecord (value + note) for block on date.
+    pub fn get_sticker_record(&self, block_id: i64, date: &str) -> Result<Option<StickerRecord>> {
+        let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
+        let mut stmt = conn.prepare(
+            "SELECT block_id, date, value, note FROM sticker_records WHERE block_id = ?1 AND date = ?2",
+        )?;
+        let mut rows = stmt.query(params![block_id, date])?;
+        match rows.next()? {
+            Some(r) => {
+                let v: i32 = r.get(2)?;
+                Ok(Some(StickerRecord {
+                    block_id: r.get(0)?,
+                    date: r.get(1)?,
+                    value: match v {
+                        1 => StickerValue::One,
+                        2 => StickerValue::Two,
+                        _ => StickerValue::Zero,
+                    },
+                    note: r.get(3)?,
+                }))
+            }
+            None => Ok(None),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -272,5 +340,80 @@ mod tests {
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
         db.set_sticker_today_with_note(block_id, StickerValue::Two, Some("Excellent!")).unwrap();
         assert_eq!(db.get_sticker(block_id, &today).unwrap(), StickerValue::Two);
+    }
+
+    /// f140=ensure_default_student creates student
+    #[test]
+    fn db_ensure_default_student() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = Db::open(&path).unwrap();
+        db.ensure_default_student().unwrap();
+        let s = db.get_student().unwrap().unwrap();
+        assert_eq!(s.name, "Luka");
+        assert_eq!(s.goal_stickers, 15);
+    }
+
+    /// f140=ensure_default_student idempotent
+    #[test]
+    fn db_ensure_default_student_idempotent() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = Db::open(&path).unwrap();
+        db.ensure_default_student().unwrap();
+        db.ensure_default_student().unwrap();
+        let s = db.get_student().unwrap().unwrap();
+        assert_eq!(s.name, "Luka");
+    }
+
+    /// f141=get_student returns None when empty
+    #[test]
+    fn db_get_student_returns_none_when_empty() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = Db::open(&path).unwrap();
+        assert!(db.get_student().unwrap().is_none());
+    }
+
+    /// f142=count_stickers_today
+    #[test]
+    fn db_count_stickers_today() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = Db::open(&path).unwrap();
+        db.ensure_default_schedule().unwrap();
+        let blocks = db.list_blocks().unwrap();
+        assert_eq!(db.count_stickers_today().unwrap(), 0);
+        db.set_sticker_today(blocks[0].id, StickerValue::Two).unwrap();
+        db.set_sticker_today(blocks[1].id, StickerValue::One).unwrap();
+        assert_eq!(db.count_stickers_today().unwrap(), 3); // 2 + 1
+    }
+
+    /// f143=get_sticker_record returns full record with note
+    #[test]
+    fn db_get_sticker_record_with_note() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = Db::open(&path).unwrap();
+        db.ensure_default_schedule().unwrap();
+        let blocks = db.list_blocks().unwrap();
+        let block_id = blocks[0].id;
+        let date = "2026-03-27";
+        db.set_sticker_with_note(block_id, date, StickerValue::Two, Some("Great focus"))
+            .unwrap();
+        let rec = db.get_sticker_record(block_id, date).unwrap().unwrap();
+        assert_eq!(rec.value, StickerValue::Two);
+        assert_eq!(rec.note.as_deref(), Some("Great focus"));
+    }
+
+    /// f143=get_sticker_record returns None when no record
+    #[test]
+    fn db_get_sticker_record_returns_none() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = Db::open(&path).unwrap();
+        db.ensure_default_schedule().unwrap();
+        let blocks = db.list_blocks().unwrap();
+        assert!(db.get_sticker_record(blocks[0].id, "2026-01-01").unwrap().is_none());
     }
 }

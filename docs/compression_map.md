@@ -29,6 +29,10 @@ Tokenization for traceability. Aligns with kova fN/tN convention.
 | f137 | transcribe_audio_sync | ai (candle) |
 | f138 | extract_tags | ai |
 | f139 | ScheduleCard | ui |
+| f140 | ensure_default_student | db |
+| f141 | get_student | db |
+| f142 | count_stickers_today | db |
+| f143 | get_sticker_record | db |
 
 ## Types (tN)
 
@@ -40,6 +44,7 @@ Tokenization for traceability. Aligns with kova fN/tN convention.
 | t122 | Student |
 | t123 | Db |
 | t124 | BehaviorResult |
+| t125 | DictationResult |
 
 ## Struct fields (sN)
 

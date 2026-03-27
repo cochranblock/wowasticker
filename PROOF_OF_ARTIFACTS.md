@@ -26,12 +26,12 @@ flowchart TD
 
 | Metric | Value |
 |--------|-------|
-| Lines of Rust | 960 across 7 files (6 modules + test binary) |
+| Lines of Rust | 1141 across 7 files (6 modules + test binary) |
 | AI model | Whisper-Tiny GGUF (on-device, no cloud) |
 | UI framework | Dioxus 0.5 (pure Rust, mobile-native) |
 | Audio | cpal (cross-platform mic capture) |
 | Storage | rusqlite (bundled SQLite, zero external deps) |
-| Unit tests | 27 (parser heuristics, DB operations, behavior tags, audio stubs) |
+| Unit tests | 33 (parser heuristics, DB operations, student CRUD, sticker records, behavior tags, audio stubs) |
 | Quality gate | TRIPLE SIMS via exopack (3-pass determinism) |
 | Schedule blocks | 5 (Cultural Arts, Community Circle, Math, Recess, Lunch) |
 | Sticker values | 3-tier: 0 (concern), 1 (good), 2 (great) |
@@ -46,13 +46,16 @@ flowchart TD
 | Thumb-Zone UI | All controls in bottom half of screen for one-handed use. Safe-area insets respect notches |
 | Behavioral Tags | Auto-extracted from transcription: elopement, refusal, combative, finish_work, positive |
 | TRIPLE SIMS | 3-pass test via exopack — real tempfile SQLite, no mocks |
+| Student Profile | Default student with configurable goal_stickers — dynamic goal display in UI |
+| Progress Counter | `count_stickers_today()` sums sticker values; UI shows "4 / 15 Stickers" with goal-met state |
+| Transcription Display | After dictation, status shows block name + score + transcription text + behavior tags |
 | Feature Gates | Tests run without audio/UI libs (--no-default-features) |
 
 ## How to Verify
 
 ```bash
 cargo build --release -p wowasticker
-cargo test -p wowasticker --no-default-features           # 27 tests
+cargo test -p wowasticker --no-default-features           # 33 tests
 cargo run -p wowasticker --bin wowasticker-test --features tests  # TRIPLE SIMS
 ```
 

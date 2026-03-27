@@ -16,20 +16,19 @@ fn sticker_str(v: StickerValue) -> &'static str {
     }
 }
 
-/// Default schedule blocks (used before DB init)
-const DEFAULT_BLOCKS: &[&str] = &[
-    "Cultural Arts",
-    "Community Circle",
-    "Math",
-    "Recess",
-    "Lunch",
-];
+/// t125=DictationResult. What was heard, scored, and tagged.
+struct DictationResult {
+    block_name: String,
+    score: StickerValue,
+    transcription: String,
+    tags: Vec<String>,
+}
 
-/// f133=App. Root component: db, blocks, dictation flow.
+/// f133=App. Root component: db, student, blocks, dictation flow.
 #[component]
 pub fn App() -> Element {
-    let db_path = std::env::var("WOWASTICKER_DB")
-        .unwrap_or_else(|_| "wowasticker.db".to_string());
+    let db_path =
+        std::env::var("WOWASTICKER_DB").unwrap_or_else(|_| "wowasticker.db".to_string());
     let db = use_signal(|| None::<Arc<Db>>);
     let blocks = use_signal(|| Vec::<ScheduleBlock>::new());
     let selected_block = use_signal(|| 0usize);
@@ -37,16 +36,27 @@ pub fn App() -> Element {
     let processing = use_signal(|| false);
     let last_error = use_signal(|| None::<String>);
     let refresh = use_signal(|| 0u32);
+    let student_name = use_signal(|| "Student".to_string());
+    let goal_stickers = use_signal(|| 15i32);
+    let stickers_earned = use_signal(|| 0i32);
 
     use_effect(move || {
         spawn(async move {
             match Db::open(&db_path) {
                 Ok(d) => {
                     let d = Arc::new(d);
+                    let _ = d.ensure_default_student();
+                    if let Ok(Some(s)) = d.get_student() {
+                        student_name.set(s.name);
+                        goal_stickers.set(s.goal_stickers);
+                    }
                     if d.ensure_default_schedule().is_ok() {
                         if let Ok(b) = d.list_blocks() {
                             blocks.set(b);
                         }
+                    }
+                    if let Ok(earned) = d.count_stickers_today() {
+                        stickers_earned.set(earned);
                     }
                     db.set(Some(d));
                 }
@@ -57,13 +67,21 @@ pub fn App() -> Element {
         });
     });
 
+    let title = format!("{}'s Sticker Chart", student_name());
+    let progress = format!("{} / {} Stickers", stickers_earned(), goal_stickers());
+    let goal_met = stickers_earned() >= goal_stickers();
+
     rsx! {
         div {
             style: "display: flex; flex-direction: column; height: 100vh; padding: 20px; font-family: system-ui, sans-serif;",
             padding_bottom: "env(safe-area-inset-bottom, 20px)",
 
-            h1 { style: "margin: 0 0 4px 0; font-size: 1.5rem;", "Luka's Sticker Chart" }
-            h3 { style: "margin: 0 0 16px 0; font-size: 1rem; color: #666;", "Goal: 15 Stickers" }
+            h1 { style: "margin: 0 0 4px 0; font-size: 1.5rem;", "{title}" }
+            h3 {
+                style: "margin: 0 0 16px 0; font-size: 1rem; color: {if goal_met { \"#2e7d32\" } else { \"#666\" }};",
+                "{progress}"
+                if goal_met { " — Goal met!" }
+            }
 
             div {
                 style: "flex-grow: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;",
@@ -77,12 +95,9 @@ pub fn App() -> Element {
                     }
                 }
                 if blocks.read().is_empty() {
-                    for (i, name) in DEFAULT_BLOCKS.iter().enumerate() {
-                        div {
-                            style: "padding: 15px; margin-bottom: 10px; border-radius: 8px; background: #f0f0f0;",
-                            key: "{i}",
-                            "{name}"
-                        }
+                    div {
+                        style: "padding: 40px 20px; text-align: center; color: #999;",
+                        "Loading schedule..."
                     }
                 }
             }
@@ -109,16 +124,34 @@ pub fn App() -> Element {
                         let status_sig = status;
                         let last_err_sig = last_error;
                         let refresh_sig = refresh;
+                        let earned_sig = stickers_earned;
                         spawn(async move {
-                            match run_dictation_flow(db_clone, sel, &blocks_clone, status_sig).await {
-                                Ok(saved) => {
+                            match run_dictation_flow(db_clone.clone(), sel, &blocks_clone, status_sig).await {
+                                Ok(Some(dr)) => {
                                     last_err_sig.set(None);
-                                    if let Some((name, score)) = saved {
-                                        status_sig.set(format!("{}: {} — saved!", name, sticker_str(score)));
+                                    let tag_str = if dr.tags.is_empty() {
+                                        String::new()
                                     } else {
-                                        status_sig.set("Done.".to_string());
+                                        format!(" [{}]", dr.tags.join(", "))
+                                    };
+                                    let heard = if dr.transcription.is_empty() || dr.transcription == "Processed" {
+                                        String::new()
+                                    } else {
+                                        format!(" — \"{}\"", dr.transcription)
+                                    };
+                                    status_sig.set(format!(
+                                        "{}: {} saved!{}{}",
+                                        dr.block_name, sticker_str(dr.score), heard, tag_str
+                                    ));
+                                    if let Some(ref d) = db_clone {
+                                        if let Ok(earned) = d.count_stickers_today() {
+                                            earned_sig.set(earned);
+                                        }
                                     }
                                     refresh_sig.set(refresh_sig() + 1);
+                                }
+                                Ok(None) => {
+                                    status_sig.set("Done.".to_string());
                                 }
                                 Err(e) => {
                                     let msg = format!("Error: {}", e);
@@ -180,7 +213,7 @@ async fn run_dictation_flow(
     selected_idx: usize,
     blocks: &[ScheduleBlock],
     status: Signal<String>,
-) -> anyhow::Result<Option<(String, StickerValue)>> {
+) -> anyhow::Result<Option<DictationResult>> {
     status.set("Recording... 10s".to_string());
     let (tx, rx) = std::sync::mpsc::channel();
     let countdown_handle = std::thread::spawn(move || {
@@ -211,7 +244,12 @@ async fn run_dictation_flow(
             Some(result.note.as_str())
         };
         d.set_sticker_today_with_note(block.id, result.score, note)?;
-        return Ok(Some((block.name.clone(), result.score)));
+        return Ok(Some(DictationResult {
+            block_name: block.name.clone(),
+            score: result.score,
+            transcription: text,
+            tags: result.tags,
+        }));
     }
 
     Ok(None)
