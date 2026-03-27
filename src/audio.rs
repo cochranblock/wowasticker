@@ -15,7 +15,7 @@ mod imp {
     pub const RECORD_DURATION_SECS: u64 = 10;
 
     /// f129=capture_audio. Record 10s via cpal, resample to 16kHz mono.
-    pub fn capture_audio() -> Result<Vec<f32>> {
+    pub fn f129() -> Result<Vec<f32>> {
         let host = cpal::default_host();
         let device = host
             .default_input_device()
@@ -93,14 +93,14 @@ mod imp {
         let mut samples = samples.lock().unwrap().clone();
 
         if sample_rate != TARGET_SAMPLE_RATE {
-            samples = resample_to_16k(&samples, sample_rate)?;
+            samples = f130(&samples, sample_rate)?;
         }
 
         Ok(samples)
     }
 
     /// f130=resample_to_16k. Linear interpolate to 16kHz.
-    fn resample_to_16k(samples: &[f32], from_rate: u32) -> Result<Vec<f32>> {
+    fn f130(samples: &[f32], from_rate: u32) -> Result<Vec<f32>> {
         let from_rate = from_rate as f64;
         let to_rate = TARGET_SAMPLE_RATE as f64;
 
@@ -129,7 +129,7 @@ pub use imp::*;
 
 /// f129=capture_audio (stub when audio feature disabled).
 #[cfg(not(feature = "audio"))]
-pub fn capture_audio() -> anyhow::Result<Vec<f32>> {
+pub fn f129() -> anyhow::Result<Vec<f32>> {
     anyhow::bail!("audio feature not enabled; build with --features audio")
 }
 
@@ -140,7 +140,7 @@ mod tests {
     /// f129=capture_audio stub returns Err when audio disabled
     #[test]
     fn capture_audio_stub_returns_err() {
-        let r = capture_audio();
+        let r = f129();
         assert!(r.is_err());
         assert!(r.unwrap_err().to_string().contains("audio feature not enabled"));
     }

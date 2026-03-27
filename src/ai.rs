@@ -8,14 +8,14 @@ use std::path::Path;
 
 /// f119=transcribe_audio. Mono f32 16kHz → text via Whisper-Tiny GGUF.
 /// When candle feature + model at path: runs inference. Else: returns placeholder.
-pub async fn transcribe_audio(path: &Path, samples: &[f32]) -> Result<String> {
+pub async fn f119(path: &Path, samples: &[f32]) -> Result<String> {
     #[cfg(feature = "candle")]
     {
         if path.exists() {
             if let Ok(Ok(t)) = tokio::task::spawn_blocking({
                 let p = path.to_path_buf();
                 let s = samples.to_vec();
-                move || transcribe_audio_sync(&p, &s)
+                move || f137(&p, &s)
             })
             .await
             {
@@ -29,7 +29,7 @@ pub async fn transcribe_audio(path: &Path, samples: &[f32]) -> Result<String> {
 
 /// f137=transcribe_audio_sync. Load GGUF, run mel→encoder→decoder→tokenizer (candle).
 #[cfg(feature = "candle")]
-fn transcribe_audio_sync(path: &Path, samples: &[f32]) -> Result<String> {
+fn f137(path: &Path, samples: &[f32]) -> Result<String> {
     use candle_transformers::models::whisper::{quantized_model::Whisper, Config};
     use candle_transformers::quantized_var_builder::VarBuilder;
     use candle_core::Device;
@@ -48,22 +48,22 @@ fn transcribe_audio_sync(path: &Path, samples: &[f32]) -> Result<String> {
 
 /// t124=BehaviorResult. s10=score, s11=note, s12=tags.
 #[derive(Debug, Clone, Default)]
-pub struct BehaviorResult {
-    pub score: super::db::StickerValue,
-    pub note: String,
-    pub tags: Vec<String>,
+pub struct t124 {
+    pub s10: super::db::t119,
+    pub s11: String,
+    pub s12: Vec<String>,
 }
 
 /// f134=extract_behavior. Parse text → score + note. Uses f120 heuristics; LLM optional later.
-pub fn extract_behavior(text: &str) -> BehaviorResult {
-    let score = parse_sticker_from_transcription(text);
-    let note = text.trim().to_string();
-    let tags = extract_tags(text);
-    BehaviorResult { score, note, tags }
+pub fn f134(text: &str) -> t124 {
+    let s10 = f120(text);
+    let s11 = text.trim().to_string();
+    let s12 = f138(text);
+    t124 { s10, s11, s12 }
 }
 
 /// f138=extract_tags. Heuristic tag extraction from transcription.
-fn extract_tags(text: &str) -> Vec<String> {
+fn f138(text: &str) -> Vec<String> {
     let lower = text.to_lowercase();
     let mut tags = Vec::new();
     for (phrase, tag) in [
@@ -83,14 +83,14 @@ fn extract_tags(text: &str) -> Vec<String> {
 }
 
 /// f120=parse_sticker_from_transcription. Heuristics: great/excellent→2, ok/good→1, else 0.
-pub fn parse_sticker_from_transcription(text: &str) -> super::db::StickerValue {
+pub fn f120(text: &str) -> super::db::t119 {
     let lower = text.to_lowercase();
     if lower.contains("great")
         || lower.contains("excellent")
         || lower.contains("awesome")
         || lower.contains("perfect")
     {
-        return super::db::StickerValue::Two;
+        return super::db::t119::Two;
     }
     if lower.contains("good")
         || lower.contains("ok")
@@ -99,7 +99,7 @@ pub fn parse_sticker_from_transcription(text: &str) -> super::db::StickerValue {
         || lower.contains("did well")
         || lower.contains("acceptable")
     {
-        return super::db::StickerValue::One;
+        return super::db::t119::One;
     }
     if lower.contains("refus")
         || lower.contains("elopement")
@@ -107,97 +107,97 @@ pub fn parse_sticker_from_transcription(text: &str) -> super::db::StickerValue {
         || lower.contains("no work")
         || lower.contains("didn't")
     {
-        return super::db::StickerValue::Zero;
+        return super::db::t119::Zero;
     }
-    super::db::StickerValue::Zero
+    super::db::t119::Zero
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::StickerValue;
+    use crate::db::t119;
 
     /// f120=parse_sticker_great_returns_two
     #[test]
     fn parse_sticker_great_returns_two() {
-        assert_eq!(parse_sticker_from_transcription("He did great!"), StickerValue::Two);
+        assert_eq!(f120("He did great!"), t119::Two);
     }
 
     /// f120=parse_sticker_excellent_returns_two
     #[test]
     fn parse_sticker_excellent_returns_two() {
-        assert_eq!(parse_sticker_from_transcription("Excellent work"), StickerValue::Two);
+        assert_eq!(f120("Excellent work"), t119::Two);
     }
 
     /// f120=parse_sticker_good_returns_one
     #[test]
     fn parse_sticker_good_returns_one() {
-        assert_eq!(parse_sticker_from_transcription("Good job today"), StickerValue::One);
+        assert_eq!(f120("Good job today"), t119::One);
     }
 
     /// f120=parse_sticker_ok_returns_one
     #[test]
     fn parse_sticker_ok_returns_one() {
-        assert_eq!(parse_sticker_from_transcription("Ok, fine"), StickerValue::One);
+        assert_eq!(f120("Ok, fine"), t119::One);
     }
 
     /// f120=parse_sticker_empty_returns_zero
     #[test]
     fn parse_sticker_empty_returns_zero() {
-        assert_eq!(parse_sticker_from_transcription(""), StickerValue::Zero);
+        assert_eq!(f120(""), t119::Zero);
     }
 
     /// f120=parse_sticker_neutral_returns_zero
     #[test]
     fn parse_sticker_neutral_returns_zero() {
-        assert_eq!(parse_sticker_from_transcription("needs improvement"), StickerValue::Zero);
+        assert_eq!(f120("needs improvement"), t119::Zero);
     }
 
     /// f120=parse_sticker_refusal_returns_zero
     #[test]
     fn parse_sticker_refusal_returns_zero() {
         assert_eq!(
-            parse_sticker_from_transcription("Refused to do work"),
-            StickerValue::Zero
+            f120("Refused to do work"),
+            t119::Zero
         );
     }
 
     /// f120=parse_sticker_awesome_returns_two
     #[test]
     fn parse_sticker_awesome_returns_two() {
-        assert_eq!(parse_sticker_from_transcription("Awesome job!"), StickerValue::Two);
+        assert_eq!(f120("Awesome job!"), t119::Two);
     }
 
     /// f120=parse_sticker_perfect_returns_two
     #[test]
     fn parse_sticker_perfect_returns_two() {
-        assert_eq!(parse_sticker_from_transcription("Perfect day"), StickerValue::Two);
+        assert_eq!(f120("Perfect day"), t119::Two);
     }
 
     /// f120=parse_sticker_fine_returns_one
     #[test]
     fn parse_sticker_fine_returns_one() {
-        assert_eq!(parse_sticker_from_transcription("Did fine today"), StickerValue::One);
+        assert_eq!(f120("Did fine today"), t119::One);
     }
 
     /// f120=parse_sticker_did_well_returns_one
     #[test]
     fn parse_sticker_did_well_returns_one() {
-        assert_eq!(parse_sticker_from_transcription("He did well"), StickerValue::One);
+        assert_eq!(f120("He did well"), t119::One);
     }
 
     /// f120=parse_sticker_acceptable_returns_one
     #[test]
     fn parse_sticker_acceptable_returns_one() {
-        assert_eq!(parse_sticker_from_transcription("Acceptable behavior"), StickerValue::One);
+        assert_eq!(f120("Acceptable behavior"), t119::One);
     }
 
     /// f120=parse_sticker_elopement_returns_zero
     #[test]
     fn parse_sticker_elopement_returns_zero() {
         assert_eq!(
-            parse_sticker_from_transcription("Elopement incident"),
-            StickerValue::Zero
+            f120("Elopement incident"),
+            t119::Zero
         );
     }
 
@@ -205,8 +205,8 @@ mod tests {
     #[test]
     fn parse_sticker_combative_returns_zero() {
         assert_eq!(
-            parse_sticker_from_transcription("Combative with staff"),
-            StickerValue::Zero
+            f120("Combative with staff"),
+            t119::Zero
         );
     }
 
@@ -214,8 +214,8 @@ mod tests {
     #[test]
     fn parse_sticker_no_work_returns_zero() {
         assert_eq!(
-            parse_sticker_from_transcription("No work completed"),
-            StickerValue::Zero
+            f120("No work completed"),
+            t119::Zero
         );
     }
 
@@ -223,35 +223,35 @@ mod tests {
     #[test]
     fn parse_sticker_didnt_returns_zero() {
         assert_eq!(
-            parse_sticker_from_transcription("He didn't participate"),
-            StickerValue::Zero
+            f120("He didn't participate"),
+            t119::Zero
         );
     }
 
     /// f134=extract_behavior
     #[test]
     fn extract_behavior_returns_score_and_note() {
-        let r = extract_behavior("He did great today!");
-        assert_eq!(r.score, StickerValue::Two);
-        assert_eq!(r.note, "He did great today!");
-        assert!(r.tags.contains(&"positive".to_string()));
+        let r = f134("He did great today!");
+        assert_eq!(r.s10, t119::Two);
+        assert_eq!(r.s11, "He did great today!");
+        assert!(r.s12.contains(&"positive".to_string()));
     }
 
-    /// f138=extract_tags via extract_behavior: elopement, refusal, combative
+    /// f138=extract_tags via f134: elopement, refusal, combative
     #[test]
     fn extract_behavior_tags_elopement_refusal_combative() {
-        let r = extract_behavior("Elopement and refused to stay in. Combative.");
-        assert!(r.tags.contains(&"elopement".to_string()));
-        assert!(r.tags.contains(&"refusal".to_string()));
-        assert!(r.tags.contains(&"combative".to_string()));
+        let r = f134("Elopement and refused to stay in. Combative.");
+        assert!(r.s12.contains(&"elopement".to_string()));
+        assert!(r.s12.contains(&"refusal".to_string()));
+        assert!(r.s12.contains(&"combative".to_string()));
     }
 
-    /// f138=extract_tags via extract_behavior: stay_in_space, finish_work
+    /// f138=extract_tags via f134: stay_in_space, finish_work
     #[test]
     fn extract_behavior_tags_stay_in_finish() {
-        let r = extract_behavior("Had to stay in his seat and helped finish the work.");
-        assert!(r.tags.contains(&"stay_in_space".to_string()));
-        assert!(r.tags.contains(&"finish_work".to_string()));
+        let r = f134("Had to stay in his seat and helped finish the work.");
+        assert!(r.s12.contains(&"stay_in_space".to_string()));
+        assert!(r.s12.contains(&"finish_work".to_string()));
     }
 
     /// f119=transcribe_audio placeholder when no model
@@ -259,7 +259,7 @@ mod tests {
     async fn transcribe_audio_returns_processed_without_model() {
         let path = std::path::Path::new("/nonexistent/whisper.gguf");
         let samples = vec![0.0f32; 1600]; // 0.1s at 16kHz
-        let text = super::transcribe_audio(path, &samples).await.unwrap();
+        let text = super::f119(path, &samples).await.unwrap();
         assert_eq!(text, "Processed");
     }
 }

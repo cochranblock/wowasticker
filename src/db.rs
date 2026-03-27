@@ -11,7 +11,7 @@ use std::sync::Mutex;
 
 /// t119=StickerValue. 0=none, 1=partial, 2=full.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
-pub enum StickerValue {
+pub enum t119 {
     #[default]
     Zero = 0,
     One = 1,
@@ -20,50 +20,60 @@ pub enum StickerValue {
 
 /// t120=ScheduleBlock. s0=id, s1=name, s2=sort_order.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct ScheduleBlock {
-    pub id: i64,
-    pub name: String,
-    pub sort_order: i32,
+pub struct t120 {
+    #[serde(rename = "id")]
+    pub s0: i64,
+    #[serde(rename = "name")]
+    pub s1: String,
+    #[serde(rename = "sort_order")]
+    pub s2: i32,
 }
 
 /// t121=StickerRecord. s3=block_id, s4=date, s5=value, s9=note.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct StickerRecord {
-    pub block_id: i64,
-    pub date: String,
-    pub value: StickerValue,
+pub struct t121 {
+    #[serde(rename = "block_id")]
+    pub s3: i64,
+    #[serde(rename = "date")]
+    pub s4: String,
+    #[serde(rename = "value")]
+    pub s5: t119,
     #[serde(default)]
-    pub note: Option<String>,
+    #[serde(rename = "note")]
+    pub s9: Option<String>,
 }
 
 /// t122=Student. s6=id, s7=name, s8=goal_stickers.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Student {
-    pub id: i64,
-    pub name: String,
-    pub goal_stickers: i32,
+pub struct t122 {
+    #[serde(rename = "id")]
+    pub s6: i64,
+    #[serde(rename = "name")]
+    pub s7: String,
+    #[serde(rename = "goal_stickers")]
+    pub s8: i32,
 }
 
 /// t123=Db. Thread-safe via Mutex.
-pub struct Db(Mutex<Connection>);
+pub struct t123(Mutex<Connection>);
 
-impl PartialEq for Db {
+impl PartialEq for t123 {
     fn eq(&self, other: &Self) -> bool {
         std::ptr::eq(self, other)
     }
 }
 
-impl Db {
+impl t123 {
     /// f121=db_open. Open or create database at path.
-    pub fn open(path: impl AsRef<Path>) -> Result<Self> {
+    pub fn f121(path: impl AsRef<Path>) -> Result<Self> {
         let conn = Connection::open(path.as_ref())
             .with_context(|| format!("open db: {}", path.as_ref().display()))?;
-        Self::init(&conn)?;
+        Self::f122(&conn)?;
         Ok(Self(Mutex::new(conn)))
     }
 
     /// f122=db_init. Create tables if not exist. Migration: add note column.
-    fn init(conn: &Connection) -> Result<()> {
+    fn f122(conn: &Connection) -> Result<()> {
         conn.execute_batch(
             r#"
             CREATE TABLE IF NOT EXISTS students (
@@ -93,7 +103,7 @@ impl Db {
     }
 
     /// f123=ensure_default_schedule. Insert default blocks if none exist.
-    pub fn ensure_default_schedule(&self) -> Result<()> {
+    pub fn f123(&self) -> Result<()> {
         let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         let count: i64 = conn.query_row("SELECT COUNT(*) FROM schedule_blocks", [], |r| r.get(0))?;
         if count > 0 {
@@ -116,23 +126,23 @@ impl Db {
     }
 
     /// f124=list_blocks. List schedule blocks by sort_order.
-    pub fn list_blocks(&self) -> Result<Vec<ScheduleBlock>> {
+    pub fn f124(&self) -> Result<Vec<t120>> {
         let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         let mut stmt = conn.prepare(
             "SELECT id, name, sort_order FROM schedule_blocks ORDER BY sort_order",
         )?;
         let rows = stmt.query_map([], |r| {
-            Ok(ScheduleBlock {
-                id: r.get(0)?,
-                name: r.get(1)?,
-                sort_order: r.get(2)?,
+            Ok(t120 {
+                s0: r.get(0)?,
+                s1: r.get(1)?,
+                s2: r.get(2)?,
             })
         })?;
         rows.collect::<Result<Vec<_>, _>>().map_err(Into::into)
     }
 
     /// f125=get_sticker. Get sticker value for block on date.
-    pub fn get_sticker(&self, block_id: i64, date: &str) -> Result<StickerValue> {
+    pub fn f125(&self, block_id: i64, date: &str) -> Result<t119> {
         let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         let mut stmt = conn.prepare(
             "SELECT value FROM sticker_records WHERE block_id = ?1 AND date = ?2",
@@ -140,26 +150,26 @@ impl Db {
         let mut rows = stmt.query(params![block_id, date])?;
         let v: i32 = match rows.next()? {
             Some(r) => r.get(0)?,
-            None => return Ok(StickerValue::Zero),
+            None => return Ok(t119::Zero),
         };
         Ok(match v {
-            1 => StickerValue::One,
-            2 => StickerValue::Two,
-            _ => StickerValue::Zero,
+            1 => t119::One,
+            2 => t119::Two,
+            _ => t119::Zero,
         })
     }
 
     /// f126=set_sticker. Set sticker value for block on date.
-    pub fn set_sticker(&self, block_id: i64, date: &str, value: StickerValue) -> Result<()> {
-        self.set_sticker_with_note(block_id, date, value, None)
+    pub fn f126(&self, block_id: i64, date: &str, value: t119) -> Result<()> {
+        self.f136(block_id, date, value, None)
     }
 
     /// f136=set_sticker_with_note. Set sticker and optional note.
-    pub fn set_sticker_with_note(
+    pub fn f136(
         &self,
         block_id: i64,
         date: &str,
-        value: StickerValue,
+        value: t119,
         note: Option<&str>,
     ) -> Result<()> {
         let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
@@ -175,29 +185,29 @@ impl Db {
     }
 
     /// f127=get_sticker_today. Get sticker for block on today.
-    pub fn get_sticker_today(&self, block_id: i64) -> Result<StickerValue> {
+    pub fn f127(&self, block_id: i64) -> Result<t119> {
         let date = chrono::Local::now().format("%Y-%m-%d").to_string();
-        self.get_sticker(block_id, &date)
+        self.f125(block_id, &date)
     }
 
     /// f128=set_sticker_today. Set sticker for block on today.
-    pub fn set_sticker_today(&self, block_id: i64, value: StickerValue) -> Result<()> {
-        self.set_sticker_today_with_note(block_id, value, None)
+    pub fn f128(&self, block_id: i64, value: t119) -> Result<()> {
+        self.f135(block_id, value, None)
     }
 
     /// f135=set_sticker_today_with_note. Set sticker and note for today.
-    pub fn set_sticker_today_with_note(
+    pub fn f135(
         &self,
         block_id: i64,
-        value: StickerValue,
+        value: t119,
         note: Option<&str>,
     ) -> Result<()> {
         let date = chrono::Local::now().format("%Y-%m-%d").to_string();
-        self.set_sticker_with_note(block_id, &date, value, note)
+        self.f136(block_id, &date, value, note)
     }
 
     /// f140=ensure_default_student. Create default student if none exists.
-    pub fn ensure_default_student(&self) -> Result<()> {
+    pub fn f140(&self) -> Result<()> {
         let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         let count: i64 =
             conn.query_row("SELECT COUNT(*) FROM students", [], |r| r.get(0))?;
@@ -212,23 +222,23 @@ impl Db {
     }
 
     /// f141=get_student. Get first student (single-student mode).
-    pub fn get_student(&self) -> Result<Option<Student>> {
+    pub fn f141(&self) -> Result<Option<t122>> {
         let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         let mut stmt =
             conn.prepare("SELECT id, name, goal_stickers FROM students LIMIT 1")?;
         let mut rows = stmt.query([])?;
         match rows.next()? {
-            Some(r) => Ok(Some(Student {
-                id: r.get(0)?,
-                name: r.get(1)?,
-                goal_stickers: r.get(2)?,
+            Some(r) => Ok(Some(t122 {
+                s6: r.get(0)?,
+                s7: r.get(1)?,
+                s8: r.get(2)?,
             })),
             None => Ok(None),
         }
     }
 
     /// f142=count_stickers_today. Sum sticker values for today across all blocks.
-    pub fn count_stickers_today(&self) -> Result<i32> {
+    pub fn f142(&self) -> Result<i32> {
         let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         let date = chrono::Local::now().format("%Y-%m-%d").to_string();
         let total: i32 = conn.query_row(
@@ -239,8 +249,8 @@ impl Db {
         Ok(total)
     }
 
-    /// f143=get_sticker_record. Get full StickerRecord (value + note) for block on date.
-    pub fn get_sticker_record(&self, block_id: i64, date: &str) -> Result<Option<StickerRecord>> {
+    /// f143=get_sticker_record. Get full t121 (value + note) for block on date.
+    pub fn f143(&self, block_id: i64, date: &str) -> Result<Option<t121>> {
         let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         let mut stmt = conn.prepare(
             "SELECT block_id, date, value, note FROM sticker_records WHERE block_id = ?1 AND date = ?2",
@@ -249,15 +259,15 @@ impl Db {
         match rows.next()? {
             Some(r) => {
                 let v: i32 = r.get(2)?;
-                Ok(Some(StickerRecord {
-                    block_id: r.get(0)?,
-                    date: r.get(1)?,
-                    value: match v {
-                        1 => StickerValue::One,
-                        2 => StickerValue::Two,
-                        _ => StickerValue::Zero,
+                Ok(Some(t121 {
+                    s3: r.get(0)?,
+                    s4: r.get(1)?,
+                    s5: match v {
+                        1 => t119::One,
+                        2 => t119::Two,
+                        _ => t119::Zero,
                     },
-                    note: r.get(3)?,
+                    s9: r.get(3)?,
                 }))
             }
             None => Ok(None),
@@ -265,18 +275,18 @@ impl Db {
     }
 
     /// f144=list_day_records. All blocks with their sticker records for a date.
-    pub fn list_day_records(&self, date: &str) -> Result<Vec<(ScheduleBlock, Option<StickerRecord>)>> {
-        let blocks = self.list_blocks()?;
+    pub fn f144(&self, date: &str) -> Result<Vec<(t120, Option<t121>)>> {
+        let blocks = self.f124()?;
         let mut out = Vec::with_capacity(blocks.len());
         for block in blocks {
-            let record = self.get_sticker_record(block.id, date)?;
+            let record = self.f143(block.s0, date)?;
             out.push((block, record));
         }
         Ok(out)
     }
 
     /// f145=count_stickers_for_date. Sum sticker values for a specific date.
-    pub fn count_stickers_for_date(&self, date: &str) -> Result<i32> {
+    pub fn f145(&self, date: &str) -> Result<i32> {
         let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         let total: i32 = conn.query_row(
             "SELECT COALESCE(SUM(value), 0) FROM sticker_records WHERE date = ?1",
@@ -287,7 +297,7 @@ impl Db {
     }
 
     /// f146=delete_sticker. Remove a sticker record for block on date (undo).
-    pub fn delete_sticker(&self, block_id: i64, date: &str) -> Result<bool> {
+    pub fn f146(&self, block_id: i64, date: &str) -> Result<bool> {
         let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         let deleted = conn.execute(
             "DELETE FROM sticker_records WHERE block_id = ?1 AND date = ?2",
@@ -306,11 +316,11 @@ mod tests {
     fn db_open_and_ensure_schedule() {
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let path = tmp.path().with_extension("db");
-        let db = Db::open(&path).unwrap();
-        db.ensure_default_schedule().unwrap();
-        let blocks = db.list_blocks().unwrap();
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
         assert!(!blocks.is_empty());
-        assert_eq!(blocks[0].name, "Cultural Arts");
+        assert_eq!(blocks[0].s1, "Cultural Arts");
     }
 
     /// f125/f126=db_set_and_get_sticker
@@ -318,13 +328,13 @@ mod tests {
     fn db_set_and_get_sticker() {
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let path = tmp.path().with_extension("db");
-        let db = Db::open(&path).unwrap();
-        db.ensure_default_schedule().unwrap();
-        let blocks = db.list_blocks().unwrap();
-        let block_id = blocks[0].id;
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        let block_id = blocks[0].s0;
         let date = "2026-03-03";
-        db.set_sticker(block_id, date, StickerValue::Two).unwrap();
-        assert_eq!(db.get_sticker(block_id, date).unwrap(), StickerValue::Two);
+        db.f126(block_id, date, t119::Two).unwrap();
+        assert_eq!(db.f125(block_id, date).unwrap(), t119::Two);
     }
 
     /// f125=get_sticker returns Zero when no record
@@ -332,11 +342,11 @@ mod tests {
     fn db_get_sticker_returns_zero_when_no_record() {
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let path = tmp.path().with_extension("db");
-        let db = Db::open(&path).unwrap();
-        db.ensure_default_schedule().unwrap();
-        let blocks = db.list_blocks().unwrap();
-        let block_id = blocks[0].id;
-        assert_eq!(db.get_sticker(block_id, "2026-01-01").unwrap(), StickerValue::Zero);
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        let block_id = blocks[0].s0;
+        assert_eq!(db.f125(block_id, "2026-01-01").unwrap(), t119::Zero);
     }
 
     /// f123=ensure_default_schedule idempotent
@@ -344,10 +354,10 @@ mod tests {
     fn db_ensure_default_schedule_idempotent() {
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let path = tmp.path().with_extension("db");
-        let db = Db::open(&path).unwrap();
-        db.ensure_default_schedule().unwrap();
-        db.ensure_default_schedule().unwrap();
-        let blocks = db.list_blocks().unwrap();
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
         assert_eq!(blocks.len(), 5);
     }
 
@@ -356,14 +366,14 @@ mod tests {
     fn db_set_sticker_with_note() {
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let path = tmp.path().with_extension("db");
-        let db = Db::open(&path).unwrap();
-        db.ensure_default_schedule().unwrap();
-        let blocks = db.list_blocks().unwrap();
-        let block_id = blocks[0].id;
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        let block_id = blocks[0].s0;
         let date = "2026-03-03";
-        db.set_sticker_with_note(block_id, date, StickerValue::One, Some("Good focus")).unwrap();
-        db.set_sticker(block_id, date, StickerValue::Two).unwrap(); // overwrite value
-        assert_eq!(db.get_sticker(block_id, date).unwrap(), StickerValue::Two);
+        db.f136(block_id, date, t119::One, Some("Good focus")).unwrap();
+        db.f126(block_id, date, t119::Two).unwrap(); // overwrite value
+        assert_eq!(db.f125(block_id, date).unwrap(), t119::Two);
     }
 
     /// f135=set_sticker_today_with_note
@@ -371,13 +381,13 @@ mod tests {
     fn db_set_sticker_today_with_note() {
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let path = tmp.path().with_extension("db");
-        let db = Db::open(&path).unwrap();
-        db.ensure_default_schedule().unwrap();
-        let blocks = db.list_blocks().unwrap();
-        let block_id = blocks[0].id;
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        let block_id = blocks[0].s0;
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-        db.set_sticker_today_with_note(block_id, StickerValue::Two, Some("Excellent!")).unwrap();
-        assert_eq!(db.get_sticker(block_id, &today).unwrap(), StickerValue::Two);
+        db.f135(block_id, t119::Two, Some("Excellent!")).unwrap();
+        assert_eq!(db.f125(block_id, &today).unwrap(), t119::Two);
     }
 
     /// f140=ensure_default_student creates student
@@ -385,11 +395,11 @@ mod tests {
     fn db_ensure_default_student() {
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let path = tmp.path().with_extension("db");
-        let db = Db::open(&path).unwrap();
-        db.ensure_default_student().unwrap();
-        let s = db.get_student().unwrap().unwrap();
-        assert_eq!(s.name, "Luka");
-        assert_eq!(s.goal_stickers, 15);
+        let db = t123::f121(&path).unwrap();
+        db.f140().unwrap();
+        let s = db.f141().unwrap().unwrap();
+        assert_eq!(s.s7, "Luka");
+        assert_eq!(s.s8, 15);
     }
 
     /// f140=ensure_default_student idempotent
@@ -397,11 +407,11 @@ mod tests {
     fn db_ensure_default_student_idempotent() {
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let path = tmp.path().with_extension("db");
-        let db = Db::open(&path).unwrap();
-        db.ensure_default_student().unwrap();
-        db.ensure_default_student().unwrap();
-        let s = db.get_student().unwrap().unwrap();
-        assert_eq!(s.name, "Luka");
+        let db = t123::f121(&path).unwrap();
+        db.f140().unwrap();
+        db.f140().unwrap();
+        let s = db.f141().unwrap().unwrap();
+        assert_eq!(s.s7, "Luka");
     }
 
     /// f141=get_student returns None when empty
@@ -409,8 +419,8 @@ mod tests {
     fn db_get_student_returns_none_when_empty() {
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let path = tmp.path().with_extension("db");
-        let db = Db::open(&path).unwrap();
-        assert!(db.get_student().unwrap().is_none());
+        let db = t123::f121(&path).unwrap();
+        assert!(db.f141().unwrap().is_none());
     }
 
     /// f142=count_stickers_today
@@ -418,13 +428,13 @@ mod tests {
     fn db_count_stickers_today() {
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let path = tmp.path().with_extension("db");
-        let db = Db::open(&path).unwrap();
-        db.ensure_default_schedule().unwrap();
-        let blocks = db.list_blocks().unwrap();
-        assert_eq!(db.count_stickers_today().unwrap(), 0);
-        db.set_sticker_today(blocks[0].id, StickerValue::Two).unwrap();
-        db.set_sticker_today(blocks[1].id, StickerValue::One).unwrap();
-        assert_eq!(db.count_stickers_today().unwrap(), 3); // 2 + 1
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        assert_eq!(db.f142().unwrap(), 0);
+        db.f128(blocks[0].s0, t119::Two).unwrap();
+        db.f128(blocks[1].s0, t119::One).unwrap();
+        assert_eq!(db.f142().unwrap(), 3); // 2 + 1
     }
 
     /// f143=get_sticker_record returns full record with note
@@ -432,16 +442,16 @@ mod tests {
     fn db_get_sticker_record_with_note() {
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let path = tmp.path().with_extension("db");
-        let db = Db::open(&path).unwrap();
-        db.ensure_default_schedule().unwrap();
-        let blocks = db.list_blocks().unwrap();
-        let block_id = blocks[0].id;
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        let block_id = blocks[0].s0;
         let date = "2026-03-27";
-        db.set_sticker_with_note(block_id, date, StickerValue::Two, Some("Great focus"))
+        db.f136(block_id, date, t119::Two, Some("Great focus"))
             .unwrap();
-        let rec = db.get_sticker_record(block_id, date).unwrap().unwrap();
-        assert_eq!(rec.value, StickerValue::Two);
-        assert_eq!(rec.note.as_deref(), Some("Great focus"));
+        let rec = db.f143(block_id, date).unwrap().unwrap();
+        assert_eq!(rec.s5, t119::Two);
+        assert_eq!(rec.s9.as_deref(), Some("Great focus"));
     }
 
     /// f143=get_sticker_record returns None when no record
@@ -449,10 +459,10 @@ mod tests {
     fn db_get_sticker_record_returns_none() {
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let path = tmp.path().with_extension("db");
-        let db = Db::open(&path).unwrap();
-        db.ensure_default_schedule().unwrap();
-        let blocks = db.list_blocks().unwrap();
-        assert!(db.get_sticker_record(blocks[0].id, "2026-01-01").unwrap().is_none());
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        assert!(db.f143(blocks[0].s0, "2026-01-01").unwrap().is_none());
     }
 
     /// f144=list_day_records returns all blocks with records
@@ -460,14 +470,14 @@ mod tests {
     fn db_list_day_records() {
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let path = tmp.path().with_extension("db");
-        let db = Db::open(&path).unwrap();
-        db.ensure_default_schedule().unwrap();
-        let blocks = db.list_blocks().unwrap();
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
         let date = "2026-03-27";
-        db.set_sticker_with_note(blocks[0].id, date, StickerValue::Two, Some("Great"))
+        db.f136(blocks[0].s0, date, t119::Two, Some("Great"))
             .unwrap();
-        db.set_sticker(blocks[2].id, date, StickerValue::One).unwrap();
-        let records = db.list_day_records(date).unwrap();
+        db.f126(blocks[2].s0, date, t119::One).unwrap();
+        let records = db.f144(date).unwrap();
         assert_eq!(records.len(), 5); // all blocks present
         assert!(records[0].1.is_some()); // Cultural Arts has record
         assert!(records[1].1.is_none()); // Community Circle has no record
@@ -479,14 +489,14 @@ mod tests {
     fn db_count_stickers_for_date() {
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let path = tmp.path().with_extension("db");
-        let db = Db::open(&path).unwrap();
-        db.ensure_default_schedule().unwrap();
-        let blocks = db.list_blocks().unwrap();
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
         let date = "2026-03-27";
-        assert_eq!(db.count_stickers_for_date(date).unwrap(), 0);
-        db.set_sticker(blocks[0].id, date, StickerValue::Two).unwrap();
-        db.set_sticker(blocks[1].id, date, StickerValue::One).unwrap();
-        assert_eq!(db.count_stickers_for_date(date).unwrap(), 3);
+        assert_eq!(db.f145(date).unwrap(), 0);
+        db.f126(blocks[0].s0, date, t119::Two).unwrap();
+        db.f126(blocks[1].s0, date, t119::One).unwrap();
+        assert_eq!(db.f145(date).unwrap(), 3);
     }
 
     /// f146=delete_sticker removes record
@@ -494,14 +504,14 @@ mod tests {
     fn db_delete_sticker() {
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let path = tmp.path().with_extension("db");
-        let db = Db::open(&path).unwrap();
-        db.ensure_default_schedule().unwrap();
-        let blocks = db.list_blocks().unwrap();
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
         let date = "2026-03-27";
-        db.set_sticker(blocks[0].id, date, StickerValue::Two).unwrap();
-        assert_eq!(db.get_sticker(blocks[0].id, date).unwrap(), StickerValue::Two);
-        assert!(db.delete_sticker(blocks[0].id, date).unwrap());
-        assert_eq!(db.get_sticker(blocks[0].id, date).unwrap(), StickerValue::Zero);
+        db.f126(blocks[0].s0, date, t119::Two).unwrap();
+        assert_eq!(db.f125(blocks[0].s0, date).unwrap(), t119::Two);
+        assert!(db.f146(blocks[0].s0, date).unwrap());
+        assert_eq!(db.f125(blocks[0].s0, date).unwrap(), t119::Zero);
     }
 
     /// f146=delete_sticker returns false when no record
@@ -509,9 +519,9 @@ mod tests {
     fn db_delete_sticker_returns_false_when_none() {
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let path = tmp.path().with_extension("db");
-        let db = Db::open(&path).unwrap();
-        db.ensure_default_schedule().unwrap();
-        let blocks = db.list_blocks().unwrap();
-        assert!(!db.delete_sticker(blocks[0].id, "2026-01-01").unwrap());
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        assert!(!db.f146(blocks[0].s0, "2026-01-01").unwrap());
     }
 }
