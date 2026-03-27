@@ -3,5 +3,7 @@
 # wowasticker
 
 - Offline-first mobile app for student behavioral goals. Dioxus UI, Candle Whisper, SQLite.
-- Build: cargo build --release
+- Build: `cargo build -p wowasticker` (default features: dioxus, candle, audio)
+- Test: `cargo test -p wowasticker --no-default-features` (lib only, no GTK)
+- Quality gate: `cargo run -p wowasticker --bin wowasticker-test --features tests`
 - Paths relative to repo root

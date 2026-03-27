@@ -12,16 +12,14 @@ pub async fn transcribe_audio(path: &Path, samples: &[f32]) -> Result<String> {
     #[cfg(feature = "candle")]
     {
         if path.exists() {
-            if let Ok(text) = tokio::task::spawn_blocking({
+            if let Ok(Ok(t)) = tokio::task::spawn_blocking({
                 let p = path.to_path_buf();
                 let s = samples.to_vec();
                 move || transcribe_audio_sync(&p, &s)
             })
             .await
             {
-                if let Ok(t) = text {
-                    return Ok(t);
-                }
+                return Ok(t);
             }
         }
     }

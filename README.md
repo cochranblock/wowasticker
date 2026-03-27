@@ -52,27 +52,23 @@ Wire flow: User tap ─► audio capture ─► transcribe ─► parse ─► d
 
 ## Build
 
+Default features include `dioxus`, `candle`, and `audio`. A plain `cargo build` enables all three.
+
 **Desktop (Linux):** Install GTK/WebKit deps, then:
 
 ```bash
-# With audio (requires libalsa)
-cargo build -p wowasticker --features audio
-
-# Without audio (UI + DB only)
+# Full build (default: dioxus + candle + audio)
 cargo build -p wowasticker
+
+# Lib only (no UI/audio/candle — for tests or CI)
+cargo build -p wowasticker --no-default-features
 ```
 
-**macOS:** Build with GTK/WebKit (via Homebrew) or without audio:
+**macOS:** Build with GTK/WebKit (via Homebrew):
 
 ```bash
-# With audio (requires portaudio or system audio libs)
-cargo build -p wowasticker --features audio
-
-# Without audio (UI + DB only)
 cargo build -p wowasticker --release
 ```
-
-Audio may require different deps than Linux; `--features audio` is optional.
 
 **Linux deps (Ubuntu/Debian):**
 ```bash
@@ -87,8 +83,8 @@ sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev libasound2-dev
 |--------|---------|
 | `db` | SQLite: students, schedule_blocks, sticker_records (with note). `set_sticker_today_with_note()` stores dictation text |
 | `audio` | cpal capture, 10s buffer, resample to 16kHz. Feature-gated (`--features audio`) |
-| `ai` | `transcribe_audio()` Candle Whisper GGUF; `extract_behavior()` → score + note + tags; `parse_sticker_from_transcription()` heuristics |
-| `ui` | Dioxus App, ScheduleCard, dictation button, async flow |
+| `ai` | `transcribe_audio()` Candle Whisper GGUF; `extract_behavior()` → score + note + tags; `extract_tags()` heuristic tag extraction; `parse_sticker_from_transcription()` heuristics |
+| `ui` | Dioxus App, ScheduleCard, `run_dictation_flow()` (capture→transcribe→parse→save), dictation button with countdown + retry |
 
 ## Data Flow
 
@@ -103,7 +99,17 @@ sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev libasound2-dev
 ./scripts/download-whisper.sh
 
 # Set path (optional; default: whisper-tiny.gguf in cwd)
-export WOWASTICKER_WHISPER_PATH=/path/to/whisper-tiny-q4_k.gguf
+export WOWASTICKER_WHISPER_PATH=/path/to/model-tiny-q4k.gguf
 ```
 
-Candle 0.8 loads GGUF; full decode pipeline (mel→encoder→decoder→tokenizer) is scaffolded. Heuristic `extract_behavior()` runs regardless.
+The download script fetches `model-tiny-q4k.gguf`, `config-tiny.json`, `tokenizer-tiny.json`, and `melfilters.bytes` from HuggingFace. Candle 0.8 loads GGUF; full decode pipeline (mel→encoder→decoder→tokenizer) is scaffolded. Heuristic `extract_behavior()` runs regardless of model availability.
+
+## Test
+
+```bash
+# Unit tests (lib only, no GTK/audio required)
+cargo test -p wowasticker --no-default-features
+
+# Quality gate (TRIPLE SIMS via exopack)
+cargo run -p wowasticker --bin wowasticker-test --features tests
+```

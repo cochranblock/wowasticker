@@ -26,16 +26,16 @@ flowchart TD
 
 | Metric | Value |
 |--------|-------|
-| Lines of Rust | 962 across 6 modules |
+| Lines of Rust | 960 across 7 files (6 modules + test binary) |
 | AI model | Whisper-Tiny GGUF (on-device, no cloud) |
 | UI framework | Dioxus 0.5 (pure Rust, mobile-native) |
 | Audio | cpal (cross-platform mic capture) |
 | Storage | rusqlite (bundled SQLite, zero external deps) |
-| Unit tests | 26 (parser heuristics, DB operations, audio stubs) |
+| Unit tests | 27 (parser heuristics, DB operations, behavior tags, audio stubs) |
 | Quality gate | TRIPLE SIMS via exopack (3-pass determinism) |
 | Schedule blocks | 5 (Cultural Arts, Community Circle, Math, Recess, Lunch) |
 | Sticker values | 3-tier: 0 (concern), 1 (good), 2 (great) |
-| Behavior tags | 5 (elopement, refusal, combative, finish_work, positive) |
+| Behavior tags | 6 (elopement, refusal, combative, stay_in_space, finish_work, positive) |
 
 ## Key Artifacts
 
@@ -52,8 +52,8 @@ flowchart TD
 
 ```bash
 cargo build --release -p wowasticker
-cargo test --no-default-features                          # 26 tests
-cargo run -p wowasticker --bin wowasticker-test          # TRIPLE SIMS
+cargo test -p wowasticker --no-default-features           # 27 tests
+cargo run -p wowasticker --bin wowasticker-test --features tests  # TRIPLE SIMS
 ```
 
 ---
