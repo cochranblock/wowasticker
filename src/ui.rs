@@ -58,29 +58,30 @@ struct DictationResult {
 pub fn App() -> Element {
     let db_path =
         std::env::var("WOWASTICKER_DB").unwrap_or_else(|_| "wowasticker.db".to_string());
-    let db = use_signal(|| None::<Arc<Db>>);
-    let blocks = use_signal(|| Vec::<ScheduleBlock>::new());
-    let selected_block = use_signal(|| 0usize);
-    let status = use_signal(|| "Tap a block, then dictate.".to_string());
-    let processing = use_signal(|| false);
-    let last_error = use_signal(|| None::<String>);
-    let refresh = use_signal(|| 0u32);
-    let student = use_signal(|| Student {
+    let mut db = use_signal(|| None::<Arc<Db>>);
+    let mut blocks = use_signal(|| Vec::<ScheduleBlock>::new());
+    let mut selected_block = use_signal(|| 0usize);
+    let mut status = use_signal(|| "Tap a block, then dictate.".to_string());
+    let mut processing = use_signal(|| false);
+    let mut last_error = use_signal(|| None::<String>);
+    let mut refresh = use_signal(|| 0u32);
+    let mut student = use_signal(|| Student {
         id: 0,
         name: "Student".to_string(),
         goal_stickers: 15,
     });
-    let stickers_earned = use_signal(|| 0i32);
-    let view_date = use_signal(today_str);
-    let last_dictation = use_signal(|| None::<(i64, String)>); // (block_id, date) for undo
-    let share_status = use_signal(|| None::<String>);
+    let mut stickers_earned = use_signal(|| 0i32);
+    let mut view_date = use_signal(today_str);
+    let mut last_dictation = use_signal(|| None::<(i64, String)>);
+    let mut share_status = use_signal(|| None::<String>);
 
     let is_today = view_date() == today_str();
 
     // Load DB on mount
     use_effect(move || {
+        let path = db_path.clone();
         spawn(async move {
-            match Db::open(&db_path) {
+            match Db::open(&path) {
                 Ok(d) => {
                     let d = Arc::new(d);
                     let _ = d.ensure_default_student();
@@ -105,25 +106,60 @@ pub fn App() -> Element {
     });
 
     let title = format!("{}'s Sticker Chart", student().name);
-    let progress = format!("{} / {} Stickers", stickers_earned(), student().goal_stickers);
     let goal_met = stickers_earned() >= student().goal_stickers;
+    let progress_str = if goal_met {
+        format!(
+            "{} / {} Stickers — Goal met!",
+            stickers_earned(),
+            student().goal_stickers
+        )
+    } else {
+        format!("{} / {} Stickers", stickers_earned(), student().goal_stickers)
+    };
     let date_display = format_date_display(&view_date());
     let can_go_forward = view_date() < today_str();
+
+    let goal_color = if goal_met { "#2e7d32" } else { "#666" };
+    let fwd_border = if can_go_forward { "#ccc" } else { "#eee" };
+    let fwd_color = if can_go_forward { "#333" } else { "#ccc" };
+    let status_color = if last_error().is_some() {
+        "#c62828"
+    } else {
+        "#666"
+    };
+    let status_text = if last_error().is_some() {
+        last_error().unwrap_or_default()
+    } else if share_status().is_some() {
+        share_status().unwrap_or_default()
+    } else if blocks.read().is_empty() && !processing() {
+        "Loading schedule...".to_string()
+    } else {
+        status()
+    };
+    let dictate_bg = if last_error().is_some() {
+        "#e65100"
+    } else {
+        "#007AFF"
+    };
+    let dictate_label = if last_error().is_some() {
+        "Retry"
+    } else {
+        "Dictate Observation"
+    };
+    let fwd_style = format!("padding: 8px 16px; font-size: 1.1rem; background: none; border: 1px solid {fwd_border}; border-radius: 8px; cursor: pointer; color: {fwd_color};");
+    let goal_style = format!("margin: 0 0 12px 0; font-size: 1rem; color: {goal_color};");
+    let status_style = format!("margin: 0 0 10px 0; font-size: 0.85rem; color: {status_color};");
+    let dictate_style = format!("width: 100%; padding: 18px; font-size: 1.1rem; background: {dictate_bg}; color: white; border-radius: 12px; border: none; cursor: pointer; margin-bottom: 8px;");
+    let show_undo = is_today && last_dictation().is_some();
 
     rsx! {
         div {
             style: "display: flex; flex-direction: column; height: 100vh; padding: 20px; font-family: system-ui, sans-serif;",
             padding_bottom: "env(safe-area-inset-bottom, 20px)",
 
-            // Header
             h1 { style: "margin: 0 0 4px 0; font-size: 1.5rem;", "{title}" }
-            h3 {
-                style: "margin: 0 0 12px 0; font-size: 1rem; color: {if goal_met { \"#2e7d32\" } else { \"#666\" }};",
-                "{progress}"
-                if goal_met { " — Goal met!" }
-            }
+            h3 { style: "{goal_style}", "{progress_str}" }
 
-            // Date navigation
             div {
                 style: "display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 8px 0;",
                 button {
@@ -143,7 +179,7 @@ pub fn App() -> Element {
                 }
                 span { style: "font-weight: 600; font-size: 1rem;", "{date_display}" }
                 button {
-                    style: "padding: 8px 16px; font-size: 1.1rem; background: none; border: 1px solid {if can_go_forward { \"#ccc\" } else { \"#eee\" }}; border-radius: 8px; cursor: pointer; color: {if can_go_forward { \"#333\" } else { \"#ccc\" }};",
+                    style: "{fwd_style}",
                     disabled: !can_go_forward,
                     onclick: move |_| {
                         let new_date = shift_date(&view_date(), 1);
@@ -160,7 +196,6 @@ pub fn App() -> Element {
                 }
             }
 
-            // Block list
             div {
                 style: "flex-grow: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;",
                 for (i, block) in blocks.read().iter().enumerate() {
@@ -185,25 +220,13 @@ pub fn App() -> Element {
                 }
             }
 
-            // Bottom action area
             div {
                 style: "padding: 16px 0; border-top: 1px solid #ccc; flex-shrink: 0;",
+                p { style: "{status_style}", "{status_text}" }
 
-                // Status line
-                p {
-                    style: "margin: 0 0 10px 0; font-size: 0.85rem; color: {if last_error().is_some() { \"#c62828\" } else { \"#666\" }};",
-                    "{match () {
-                        _ if last_error().is_some() => last_error().as_deref().unwrap_or(\"Error\"),
-                        _ if share_status().is_some() => share_status().as_deref().unwrap_or(\"\"),
-                        _ if blocks.read().is_empty() && !processing() => \"Loading schedule...\",
-                        _ => status().as_str(),
-                    }}"
-                }
-
-                // Dictate button (only on today)
                 if is_today {
                     button {
-                        style: "width: 100%; padding: 18px; font-size: 1.1rem; background: {if last_error().is_some() { \"#e65100\" } else { \"#007AFF\" }}; color: white; border-radius: 12px; border: none; cursor: pointer; margin-bottom: 8px;",
+                        style: "{dictate_style}",
                         disabled: processing() || blocks.read().is_empty(),
                         onclick: move |_| {
                             last_error.set(None);
@@ -212,11 +235,11 @@ pub fn App() -> Element {
                             let db_clone = db();
                             let sel = selected_block();
                             let blocks_clone = blocks.read().clone();
-                            let status_sig = status;
-                            let last_err_sig = last_error;
-                            let refresh_sig = refresh;
-                            let earned_sig = stickers_earned;
-                            let undo_sig = last_dictation;
+                            let mut status_sig = status;
+                            let mut last_err_sig = last_error;
+                            let mut refresh_sig = refresh;
+                            let mut earned_sig = stickers_earned;
+                            let mut undo_sig = last_dictation;
                             let date = view_date();
                             spawn(async move {
                                 match run_dictation_flow(db_clone.clone(), sel, &blocks_clone, status_sig).await {
@@ -256,16 +279,13 @@ pub fn App() -> Element {
                                 processing.set(false);
                             });
                         },
-                        "{if last_error().is_some() { \"🔄 Retry\" } else { \"🎤 Dictate Observation\" }}"
+                        "{dictate_label}"
                     }
                 }
 
-                // Bottom row: Undo + Share
                 div {
                     style: "display: flex; gap: 8px;",
-
-                    // Undo button (only when there's something to undo, and on today)
-                    if is_today && last_dictation().is_some() {
+                    if show_undo {
                         button {
                             style: "flex: 1; padding: 14px; font-size: 0.95rem; background: #f5f5f5; color: #333; border-radius: 10px; border: 1px solid #ccc; cursor: pointer;",
                             disabled: processing(),
@@ -283,11 +303,9 @@ pub fn App() -> Element {
                                     }
                                 }
                             },
-                            "↩ Undo"
+                            "Undo"
                         }
                     }
-
-                    // Share daily report
                     button {
                         style: "flex: 1; padding: 14px; font-size: 0.95rem; background: #e8f5e9; color: #2e7d32; border-radius: 10px; border: 1px solid #a5d6a7; cursor: pointer;",
                         disabled: processing() || blocks.read().is_empty(),
@@ -302,9 +320,8 @@ pub fn App() -> Element {
                                         &records,
                                         earned,
                                     );
-                                    // Copy to clipboard via eval (WebView)
                                     let js = format!(
-                                        "navigator.clipboard.writeText({}).then(() => {{}}).catch(() => {{}})",
+                                        "navigator.clipboard.writeText({}).then(function(){{}}).catch(function(){{}})",
                                         serde_json::to_string(&text).unwrap_or_default()
                                     );
                                     eval(&js);
@@ -312,7 +329,7 @@ pub fn App() -> Element {
                                 }
                             }
                         },
-                        "📋 Share Daily Report"
+                        "Share Daily Report"
                     }
                 }
             }
@@ -330,7 +347,7 @@ fn ScheduleCard(
     date: String,
     _refresh: u32,
 ) -> Element {
-    let record = use_signal(|| None::<StickerRecord>);
+    let mut record = use_signal(|| None::<StickerRecord>);
     use_effect(move || {
         if let Some(ref d) = db {
             match d.get_sticker_record(block.id, &date) {
@@ -380,22 +397,17 @@ async fn run_dictation_flow(
     db: Option<Arc<Db>>,
     selected_idx: usize,
     blocks: &[ScheduleBlock],
-    status: Signal<String>,
+    mut status: Signal<String>,
 ) -> anyhow::Result<Option<DictationResult>> {
     status.set("Recording... 10s".to_string());
-    let (tx, rx) = std::sync::mpsc::channel();
-    let countdown_handle = std::thread::spawn(move || {
-        for i in (1..=10).rev() {
-            status.set(format!("Recording... {}s", i));
-            std::thread::sleep(Duration::from_secs(1));
-        }
-        let _ = tx.send(());
-    });
-    let samples = tokio::task::spawn_blocking(wowasticker::audio::capture_audio)
+    let capture_handle = tokio::task::spawn_blocking(wowasticker::audio::capture_audio);
+    for i in (1..=10).rev() {
+        status.set(format!("Recording... {}s", i));
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+    let samples = capture_handle
         .await
         .map_err(|e| anyhow::anyhow!("spawn_blocking: {}", e))??;
-    let _ = rx.recv();
-    countdown_handle.join().unwrap();
 
     status.set("Transcribing...".to_string());
     let model_path = std::env::var("WOWASTICKER_WHISPER_PATH")

@@ -19,7 +19,7 @@ pub enum StickerValue {
 }
 
 /// t120=ScheduleBlock. s0=id, s1=name, s2=sort_order.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ScheduleBlock {
     pub id: i64,
     pub name: String,
@@ -27,7 +27,7 @@ pub struct ScheduleBlock {
 }
 
 /// t121=StickerRecord. s3=block_id, s4=date, s5=value, s9=note.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StickerRecord {
     pub block_id: i64,
     pub date: String,
@@ -37,7 +37,7 @@ pub struct StickerRecord {
 }
 
 /// t122=Student. s6=id, s7=name, s8=goal_stickers.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Student {
     pub id: i64,
     pub name: String,
@@ -46,6 +46,12 @@ pub struct Student {
 
 /// t123=Db. Thread-safe via Mutex.
 pub struct Db(Mutex<Connection>);
+
+impl PartialEq for Db {
+    fn eq(&self, other: &Self) -> bool {
+        std::ptr::eq(self, other)
+    }
+}
 
 impl Db {
     /// f121=db_open. Open or create database at path.

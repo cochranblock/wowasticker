@@ -7,9 +7,6 @@
 
 mod ui;
 
-use dioxus::prelude::*;
-use wowasticker::ui;
-
 fn main() {
     dioxus::launch(ui::App);
 }
