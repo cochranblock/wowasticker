@@ -44,13 +44,13 @@ fn shift_date(date: &str, days: i64) -> String {
     date.to_string()
 }
 
-/// t125=DictationResult. What was heard, scored, and tagged.
-struct DictationResult {
-    block_name: String,
-    block_id: i64,
-    score: t119,
-    transcription: String,
-    tags: Vec<String>,
+/// t125=t125. What was heard, scored, and tagged.
+struct t125 {
+    s13: String,
+    s14: i64,
+    s15: t119,
+    s16: String,
+    s17: Vec<String>,
 }
 
 /// f133=App. Root component: db, student, blocks, dictation flow, history, share.
@@ -199,7 +199,7 @@ pub fn App() -> Element {
             div {
                 style: "flex-grow: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;",
                 for (i, block) in blocks.read().iter().enumerate() {
-                    ScheduleCard {
+                    f139 {
                         block: block.clone(),
                         is_selected: is_today && selected_block() == i,
                         on_select: move |_| {
@@ -242,23 +242,23 @@ pub fn App() -> Element {
                             let mut undo_sig = last_dictation;
                             let date = view_date();
                             spawn(async move {
-                                match run_dictation_flow(db_clone.clone(), sel, &blocks_clone, status_sig).await {
+                                match f132(db_clone.clone(), sel, &blocks_clone, status_sig).await {
                                     Ok(Some(dr)) => {
                                         last_err_sig.set(None);
-                                        undo_sig.set(Some((dr.block_id, date)));
-                                        let tag_str = if dr.tags.is_empty() {
+                                        undo_sig.set(Some((dr.s14, date)));
+                                        let tag_str = if dr.s17.is_empty() {
                                             String::new()
                                         } else {
-                                            format!(" [{}]", dr.tags.join(", "))
+                                            format!(" [{}]", dr.s17.join(", "))
                                         };
-                                        let heard = if dr.transcription.is_empty() || dr.transcription == "Processed" {
+                                        let heard = if dr.s16.is_empty() || dr.s16 == "Processed" {
                                             String::new()
                                         } else {
-                                            format!(" — \"{}\"", dr.transcription)
+                                            format!(" — \"{}\"", dr.s16)
                                         };
                                         status_sig.set(format!(
                                             "{}: {} saved!{}{}",
-                                            dr.block_name, sticker_str(dr.score), heard, tag_str
+                                            dr.s13, sticker_str(dr.s15), heard, tag_str
                                         ));
                                         if let Some(ref d) = db_clone {
                                             if let Ok(earned) = d.f142() {
@@ -337,9 +337,9 @@ pub fn App() -> Element {
     }
 }
 
-/// f139=ScheduleCard. Block card with sticker display, note, selection.
+/// f139=f139. Block card with sticker display, note, selection.
 #[component]
-fn ScheduleCard(
+fn f139(
     block: t120,
     is_selected: bool,
     on_select: EventHandler<MouseEvent>,
@@ -392,13 +392,13 @@ fn ScheduleCard(
     }
 }
 
-/// f132=run_dictation_flow. capture_audio → transcribe → extract_behavior → set_sticker_today_with_note.
-async fn run_dictation_flow(
+/// f132=f132. capture_audio → transcribe → extract_behavior → set_sticker_today_with_note.
+async fn f132(
     db: Option<Arc<t123>>,
     selected_idx: usize,
     blocks: &[t120],
     mut status: Signal<String>,
-) -> anyhow::Result<Option<DictationResult>> {
+) -> anyhow::Result<Option<t125>> {
     status.set("Recording... 10s".to_string());
     let capture_handle = tokio::task::spawn_blocking(wowasticker::audio::f129);
     for i in (1..=10).rev() {
@@ -424,12 +424,12 @@ async fn run_dictation_flow(
             Some(result.s11.as_str())
         };
         d.f135(block.s0, result.s10, note)?;
-        return Ok(Some(DictationResult {
-            block_name: block.s1.clone(),
-            block_id: block.s0,
-            score: result.s10,
-            transcription: text,
-            tags: result.s12,
+        return Ok(Some(t125 {
+            s13: block.s1.clone(),
+            s14: block.s0,
+            s15: result.s10,
+            s16: text,
+            s17: result.s12,
         }));
     }
 

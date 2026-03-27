@@ -2,7 +2,7 @@
 <!-- Contributors: GotEmCoach, KOVA, Claude Opus 4.6, SuperNinja, Composer 1.5, Google Gemini Pro 3 -->
 # Wowasticker Compression Map
 
-Tokenization for traceability. Aligns with kova fN/tN convention.
+P13 tokenization for traceability. All public symbols use compressed identifiers.
 
 ## Functions (fN)
 
@@ -10,8 +10,8 @@ Tokenization for traceability. Aligns with kova fN/tN convention.
 |-------|------------|--------|
 | f119 | transcribe_audio | ai |
 | f120 | parse_sticker_from_transcription | ai |
-| f121 | db_open | db |
-| f122 | db_init | db |
+| f121 | open (Db) | db |
+| f122 | init (Db) | db |
 | f123 | ensure_default_schedule | db |
 | f124 | list_blocks | db |
 | f125 | get_sticker | db |
@@ -54,21 +54,26 @@ Tokenization for traceability. Aligns with kova fN/tN convention.
 
 | Token | Type | Field |
 |-------|------|-------|
-| s0 | ScheduleBlock | id |
-| s1 | ScheduleBlock | name |
-| s2 | ScheduleBlock | sort_order |
-| s3 | StickerRecord | block_id |
-| s4 | StickerRecord | date |
-| s5 | StickerRecord | value |
-| s6 | Student | id |
-| s7 | Student | name |
-| s8 | Student | goal_stickers |
-| s9 | StickerRecord | note |
-| s10 | BehaviorResult | score |
-| s11 | BehaviorResult | note |
-| s12 | BehaviorResult | tags |
+| s0 | t120 | id |
+| s1 | t120 | name |
+| s2 | t120 | sort_order |
+| s3 | t121 | block_id |
+| s4 | t121 | date |
+| s5 | t121 | value |
+| s6 | t122 | id |
+| s7 | t122 | name |
+| s8 | t122 | goal_stickers |
+| s9 | t121 | note |
+| s10 | t124 | score |
+| s11 | t124 | note |
+| s12 | t124 | tags |
+| s13 | t125 | block_name |
+| s14 | t125 | block_id |
+| s15 | t125 | score |
+| s16 | t125 | transcription |
+| s17 | t125 | tags |
 
 ## Test traceability
 
 - `/// f131=wowasticker_test` — bin/wowasticker-test.rs (TRIPLE SIMS via exopack f61_with_args)
-- Run `rg '/// f[0-9]+=' wowasticker/src` to list coverage.
+- Run `rg '/// [ft][0-9]+=' wowasticker/src` to list coverage.
