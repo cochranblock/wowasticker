@@ -81,16 +81,19 @@ sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev libasound2-dev
 
 | Module | Purpose |
 |--------|---------|
-| `db` | SQLite: students, schedule_blocks, sticker_records (with note). Student CRUD, `count_stickers_today()` for progress, `get_sticker_record()` for full records |
+| `db` | SQLite: students, schedule_blocks, sticker_records. Student CRUD, `list_day_records()` for daily view, `count_stickers_for_date()`, `delete_sticker()` for undo |
 | `audio` | cpal capture, 10s buffer, resample to 16kHz. Feature-gated (`--features audio`) |
 | `ai` | `transcribe_audio()` Candle Whisper GGUF; `extract_behavior()` → score + note + tags; `extract_tags()` heuristic tag extraction; `parse_sticker_from_transcription()` heuristics |
-| `ui` | Dioxus App, ScheduleCard, `run_dictation_flow()` (capture→transcribe→parse→save), dynamic goal from student, sticker progress counter, transcription display with tags, countdown + retry |
+| `report` | `generate_daily_report()` — plain-text daily sticker report for sharing with parents |
+| `ui` | Dioxus App, ScheduleCard (with notes), date navigation, `run_dictation_flow()`, daily report share (clipboard), undo last dictation, progress counter |
 
 ## Data Flow
 
 1. User taps schedule block → selects it
 2. User taps "Dictate Observation" → `capture_audio()` (10s) → `transcribe_audio()` → `extract_behavior()` → `db.set_sticker_today_with_note()`
 3. UI refreshes via `refresh` signal
+4. User taps "Share Daily Report" → `list_day_records()` → `generate_daily_report()` → clipboard
+5. User taps date arrows to navigate history (past days are read-only)
 
 ## Model
 

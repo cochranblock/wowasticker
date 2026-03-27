@@ -257,6 +257,38 @@ impl Db {
             None => Ok(None),
         }
     }
+
+    /// f144=list_day_records. All blocks with their sticker records for a date.
+    pub fn list_day_records(&self, date: &str) -> Result<Vec<(ScheduleBlock, Option<StickerRecord>)>> {
+        let blocks = self.list_blocks()?;
+        let mut out = Vec::with_capacity(blocks.len());
+        for block in blocks {
+            let record = self.get_sticker_record(block.id, date)?;
+            out.push((block, record));
+        }
+        Ok(out)
+    }
+
+    /// f145=count_stickers_for_date. Sum sticker values for a specific date.
+    pub fn count_stickers_for_date(&self, date: &str) -> Result<i32> {
+        let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
+        let total: i32 = conn.query_row(
+            "SELECT COALESCE(SUM(value), 0) FROM sticker_records WHERE date = ?1",
+            params![date],
+            |r| r.get(0),
+        )?;
+        Ok(total)
+    }
+
+    /// f146=delete_sticker. Remove a sticker record for block on date (undo).
+    pub fn delete_sticker(&self, block_id: i64, date: &str) -> Result<bool> {
+        let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
+        let deleted = conn.execute(
+            "DELETE FROM sticker_records WHERE block_id = ?1 AND date = ?2",
+            params![block_id, date],
+        )?;
+        Ok(deleted > 0)
+    }
 }
 
 #[cfg(test)]
@@ -415,5 +447,65 @@ mod tests {
         db.ensure_default_schedule().unwrap();
         let blocks = db.list_blocks().unwrap();
         assert!(db.get_sticker_record(blocks[0].id, "2026-01-01").unwrap().is_none());
+    }
+
+    /// f144=list_day_records returns all blocks with records
+    #[test]
+    fn db_list_day_records() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = Db::open(&path).unwrap();
+        db.ensure_default_schedule().unwrap();
+        let blocks = db.list_blocks().unwrap();
+        let date = "2026-03-27";
+        db.set_sticker_with_note(blocks[0].id, date, StickerValue::Two, Some("Great"))
+            .unwrap();
+        db.set_sticker(blocks[2].id, date, StickerValue::One).unwrap();
+        let records = db.list_day_records(date).unwrap();
+        assert_eq!(records.len(), 5); // all blocks present
+        assert!(records[0].1.is_some()); // Cultural Arts has record
+        assert!(records[1].1.is_none()); // Community Circle has no record
+        assert!(records[2].1.is_some()); // Math has record
+    }
+
+    /// f145=count_stickers_for_date
+    #[test]
+    fn db_count_stickers_for_date() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = Db::open(&path).unwrap();
+        db.ensure_default_schedule().unwrap();
+        let blocks = db.list_blocks().unwrap();
+        let date = "2026-03-27";
+        assert_eq!(db.count_stickers_for_date(date).unwrap(), 0);
+        db.set_sticker(blocks[0].id, date, StickerValue::Two).unwrap();
+        db.set_sticker(blocks[1].id, date, StickerValue::One).unwrap();
+        assert_eq!(db.count_stickers_for_date(date).unwrap(), 3);
+    }
+
+    /// f146=delete_sticker removes record
+    #[test]
+    fn db_delete_sticker() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = Db::open(&path).unwrap();
+        db.ensure_default_schedule().unwrap();
+        let blocks = db.list_blocks().unwrap();
+        let date = "2026-03-27";
+        db.set_sticker(blocks[0].id, date, StickerValue::Two).unwrap();
+        assert_eq!(db.get_sticker(blocks[0].id, date).unwrap(), StickerValue::Two);
+        assert!(db.delete_sticker(blocks[0].id, date).unwrap());
+        assert_eq!(db.get_sticker(blocks[0].id, date).unwrap(), StickerValue::Zero);
+    }
+
+    /// f146=delete_sticker returns false when no record
+    #[test]
+    fn db_delete_sticker_returns_false_when_none() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = Db::open(&path).unwrap();
+        db.ensure_default_schedule().unwrap();
+        let blocks = db.list_blocks().unwrap();
+        assert!(!db.delete_sticker(blocks[0].id, "2026-01-01").unwrap());
     }
 }

@@ -66,9 +66,8 @@ Luka's Sticker Chart is a mobile-first behavioral tracking app: parents/educator
 - Card tap area is full card — good
 - Ensure minimum 44×44pt touch targets for all interactive elements
 
-### 9. **No undo**
-- Mis-dictation or wrong block → no way to revert
-- **Suggestion:** Undo snackbar after "Done" or edit flow for last entry
+### 9. ~~No undo~~ **RESOLVED**
+- **Implemented:** "Undo" button appears after dictation, removes last sticker entry via `delete_sticker()`, updates progress counter
 
 ### 10. ~~Transcription opacity~~ **RESOLVED**
 - **Implemented:** After save, status shows transcription text and behavior tags: `Math: ●● saved! — "He did great today!" [positive]`
@@ -87,7 +86,7 @@ Luka's Sticker Chart is a mobile-first behavioral tracking app: parents/educator
 | Empty/loading  | ✅     | Done     |
 | Confirmation   | ✅     | Done     |
 | Accessibility  | ❌     | High     |
-| Undo           | ❌     | Medium   |
+| Undo           | ✅     | Done     |
 
 ---
 
@@ -98,4 +97,4 @@ Luka's Sticker Chart is a mobile-first behavioral tracking app: parents/educator
 3. ~~Richer "Done" message~~ **Done** — "Math: ●● — saved!"
 4. ~~First-tap hint~~ **Done** — default status: "Tap a block, then dictate."
 5. **Accessibility** — add aria-labels and semantic roles
-6. **Undo** — snackbar or edit flow for last entry
+6. ~~Undo~~ **Done** — undo button after dictation

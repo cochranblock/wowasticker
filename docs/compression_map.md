@@ -33,6 +33,10 @@ Tokenization for traceability. Aligns with kova fN/tN convention.
 | f141 | get_student | db |
 | f142 | count_stickers_today | db |
 | f143 | get_sticker_record | db |
+| f144 | list_day_records | db |
+| f145 | count_stickers_for_date | db |
+| f146 | delete_sticker | db |
+| f147 | generate_daily_report | report |
 
 ## Types (tN)
 
