@@ -15,6 +15,10 @@ path = "src/main.rs"
 required-features = ["dioxus"]
 
 [[bin]]
+name = "wowasticker-cli"
+path = "src/bin/cli.rs"
+
+[[bin]]
 name = "wowasticker-test"
 path = "src/bin/wowasticker-test.rs"
 required-features = ["tests"]
