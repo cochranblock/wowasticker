@@ -1,6 +1,6 @@
+#!/bin/bash
 # Unlicense — cochranblock.org
 # Contributors: GotEmCoach, KOVA, Claude Opus 4.6, SuperNinja, Composer 1.5, Google Gemini Pro 3
-#!/bin/bash
 # Download Whisper-Tiny GGUF for wowasticker (Candle-compatible, lmz/candle-whisper).
 # Usage: ./scripts/download-whisper.sh [output_dir]
 # Output: model-tiny-q4k.gguf, config-tiny.json, tokenizer-tiny.json, melfilters.bytes

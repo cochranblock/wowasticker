@@ -202,9 +202,21 @@ pub fn App() -> Element {
                     f139 {
                         block: block.clone(),
                         is_selected: is_today && selected_block() == i,
+                        is_today: is_today,
                         on_select: move |_| {
                             if is_today {
                                 selected_block.set(i);
+                            }
+                        },
+                        on_score: move |val: t119| {
+                            let blk = blocks.read()[i].clone();
+                            if let Some(ref d) = db() {
+                                let _ = d.f135(blk.s0, val, None);
+                                if let Ok(earned) = d.f142() {
+                                    stickers_earned.set(earned);
+                                }
+                                refresh.set(refresh() + 1);
+                                status.set(format!("{}: {} saved!", blk.s1, sticker_str(val)));
                             }
                         },
                         db: db(),
@@ -337,12 +349,14 @@ pub fn App() -> Element {
     }
 }
 
-/// f139=f139. Block card with sticker display, note, selection.
+/// f139=ScheduleCard. Block card with sticker display, note, tap-to-score.
 #[component]
 fn f139(
     block: t120,
     is_selected: bool,
+    is_today: bool,
     on_select: EventHandler<MouseEvent>,
+    on_score: EventHandler<t119>,
     db: Option<Arc<t123>>,
     date: String,
     _refresh: u32,
@@ -358,7 +372,10 @@ fn f139(
     });
 
     let sticker_val = record().as_ref().map(|r| r.s5).unwrap_or(t119::Zero);
-    let note_text = record().as_ref().and_then(|r| r.s9.clone()).unwrap_or_default();
+    let note_text = record()
+        .as_ref()
+        .and_then(|r| r.s9.clone())
+        .unwrap_or_default();
 
     let bg = if is_selected { "#e3f2fd" } else { "#f0f0f0" };
     let border = if is_selected {
@@ -366,6 +383,7 @@ fn f139(
     } else {
         "2px solid transparent"
     };
+    let show_score_buttons = is_selected && is_today;
 
     rsx! {
         div {
@@ -386,6 +404,26 @@ fn f139(
                 div {
                     style: "font-size: 0.8rem; color: #555; margin-top: 4px; font-style: italic;",
                     "\"{note_text}\""
+                }
+            }
+            if show_score_buttons {
+                div {
+                    style: "display: flex; gap: 8px; margin-top: 8px;",
+                    button {
+                        style: "flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc; background: {if sticker_val == t119::Zero { \"#ffcdd2\" } else { \"#fff\" }}; cursor: pointer; font-size: 0.85rem;",
+                        onclick: move |evt| { evt.stop_propagation(); on_score.call(t119::Zero); },
+                        "0"
+                    }
+                    button {
+                        style: "flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc; background: {if sticker_val == t119::One { \"#fff9c4\" } else { \"#fff\" }}; cursor: pointer; font-size: 0.85rem;",
+                        onclick: move |evt| { evt.stop_propagation(); on_score.call(t119::One); },
+                        "1"
+                    }
+                    button {
+                        style: "flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc; background: {if sticker_val == t119::Two { \"#c8e6c9\" } else { \"#fff\" }}; cursor: pointer; font-size: 0.85rem;",
+                        onclick: move |evt| { evt.stop_propagation(); on_score.call(t119::Two); },
+                        "2"
+                    }
                 }
             }
         }
