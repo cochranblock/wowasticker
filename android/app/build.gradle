@@ -1,0 +1,54 @@
+// Unlicense — cochranblock.org
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'org.cochranblock.wowasticker'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "org.cochranblock.wowasticker"
+        minSdk 26
+        targetSdk 35
+        versionCode 2
+        versionName "0.2.0"
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['src/main/jniLibs']
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+}
+
+// Task: build Rust .so before assembling
+task buildRustLib(type: Exec) {
+    workingDir rootProject.projectDir.parentFile
+    environment 'PATH', System.getenv('PATH') + ':' + System.getenv('HOME') + '/.cargo/bin'
+    commandLine 'cargo', 'build', '--release',
+            '--target', 'aarch64-linux-android',
+            '--lib', '--no-default-features',
+            '-p', 'wowasticker'
+}
+
+task copyRustLib(type: Copy, dependsOn: buildRustLib) {
+    from "${rootProject.projectDir.parentFile}/target/aarch64-linux-android/release/libwowasticker.so"
+    into 'src/main/jniLibs/arm64-v8a'
+}
+
+preBuild.dependsOn copyRustLib

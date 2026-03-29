@@ -1,0 +1,3 @@
+// Unlicense — cochranblock.org
+rootProject.name = "wowasticker"
+include ':app'

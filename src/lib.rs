@@ -8,4 +8,6 @@
 pub mod ai;
 pub mod audio;
 pub mod db;
+#[cfg(feature = "jni")]
+pub mod jni;
 pub mod report;

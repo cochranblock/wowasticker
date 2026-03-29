@@ -6019,6 +6019,7 @@ dependencies = [
  "cpal",
  "dioxus",
  "exopack",
+ "jni",
  "rand 0.8.5",
  "rusqlite",
  "serde",

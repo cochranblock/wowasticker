@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.WowaSticker" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#007AFF</item>
+        <item name="colorPrimaryVariant">#0056B3</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#2E7D32</item>
+    </style>
+</resources>
