@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<!-- Unlicense — cochranblock.org -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#007AFF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.svg">
+<title>WowaSticker</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; padding: 20px; padding-bottom: 140px; background: #fafafa; -webkit-tap-highlight-color: transparent; }
+h1 { font-size: 1.5rem; margin-bottom: 4px; }
+#progress { font-size: 1rem; color: #666; margin-bottom: 16px; }
+.card { padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; background: #f0f0f0; border: 2px solid transparent; cursor: pointer; -webkit-user-select: none; user-select: none; }
+.card.selected { background: #e3f2fd; border-color: #007AFF; }
+.card-header { display: flex; justify-content: space-between; align-items: center; }
+.card-header span:first-child { font-weight: 600; }
+.note { font-size: 0.8rem; color: #555; margin-top: 4px; font-style: italic; }
+.score-btns { display: flex; gap: 8px; margin-top: 8px; }
+.score-btns button { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ccc; background: #fff; font-size: 1rem; cursor: pointer; min-height: 44px; }
+.score-btns button.a0 { background: #ffcdd2; }
+.score-btns button.a1 { background: #fff9c4; }
+.score-btns button.a2 { background: #c8e6c9; }
+#bottom { position: fixed; bottom: 0; left: 0; right: 0; padding: 16px 20px; padding-bottom: max(16px, env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid #ccc; }
+#status { font-size: 0.85rem; color: #666; margin-bottom: 8px; }
+.btn-row { display: flex; gap: 8px; }
+.btn-row button { flex: 1; padding: 14px; font-size: 0.95rem; border-radius: 10px; border: 1px solid; cursor: pointer; min-height: 44px; }
+#share-btn { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
+</style>
+</head>
+<body>
+<h1 id="title">WowaSticker</h1>
+<div id="progress">Loading...</div>
+<div id="blocks"></div>
+<div id="bottom">
+  <div id="status">Tap a block, then score.</div>
+  <div class="btn-row">
+    <button id="share-btn" onclick="shareReport()">Share Daily Report</button>
+  </div>
+</div>
+
+<script type="module">
+// Try WASM, fall back to in-memory JS
+let wasm = null;
+try {
+  const mod = await import('./wowasticker_wasm.js');
+  await mod.default();
+  wasm = mod;
+} catch(e) {
+  console.log('WASM not available, using JS fallback');
+}
+
+// JS fallback DB (localStorage)
+const LS_KEY = 'wowasticker_data';
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) || defaultData(); }
+  catch(e) { return defaultData(); }
+}
+function saveData(d) { localStorage.setItem(LS_KEY, JSON.stringify(d)); }
+function defaultData() {
+  return {
+    student: { name: 'Luka', goal: 15 },
+    blocks: [
+      { id: 1, name: 'Cultural Arts' },
+      { id: 2, name: 'Community Circle' },
+      { id: 3, name: 'Math' },
+      { id: 4, name: 'Recess' },
+      { id: 5, name: 'Lunch' },
+    ],
+    records: {} // "YYYY-MM-DD:blockId" -> { value, note }
+  };
+}
+function todayKey(blockId) {
+  return new Date().toISOString().slice(0,10) + ':' + blockId;
+}
+
+let data = loadData();
+let selected = -1;
+
+function getBlocks() {
+  if (wasm) {
+    try { return JSON.parse(wasm.wasm_get_blocks()); } catch(e) {}
+  }
+  return data.blocks.map(b => {
+    const rec = data.records[todayKey(b.id)] || { value: 0, note: '' };
+    return { id: b.id, name: b.name, value: rec.value, note: rec.note };
+  });
+}
+
+function setSticker(blockId, value) {
+  if (wasm) {
+    try { wasm.wasm_set_sticker(BigInt(blockId), value); return; } catch(e) {}
+  }
+  const key = todayKey(blockId);
+  data.records[key] = { value, note: '' };
+  saveData(data);
+}
+
+function getProgress() {
+  if (wasm) {
+    try { return wasm.wasm_get_progress(); } catch(e) {}
+  }
+  const today = new Date().toISOString().slice(0,10);
+  let earned = 0;
+  data.blocks.forEach(b => {
+    const rec = data.records[today + ':' + b.id];
+    if (rec) earned += rec.value;
+  });
+  const goal = data.student.goal;
+  return earned >= goal
+    ? `${earned} / ${goal} Stickers — Goal met!`
+    : `${earned} / ${goal} Stickers`;
+}
+
+function getReport() {
+  if (wasm) {
+    const d = new Date().toISOString().slice(0,10);
+    try { return wasm.wasm_get_report(d); } catch(e) {}
+  }
+  const d = new Date().toISOString().slice(0,10);
+  const blocks = getBlocks();
+  let earned = blocks.reduce((s,b) => s + b.value, 0);
+  let lines = [`${data.student.name}'s Sticker Report — ${d}`];
+  lines.push(`Progress: ${earned} / ${data.student.goal} stickers`);
+  if (earned >= data.student.goal) lines.push('Goal met!');
+  lines.push('');
+  const labels = ['Needs work', 'Good', 'Great'];
+  const emojis = ['○', '●', '●●'];
+  blocks.forEach(b => {
+    if (b.value > 0) {
+      let line = `${emojis[b.value]} ${b.name} — ${labels[b.value]}`;
+      if (b.note) line += `: ${b.note}`;
+      lines.push(line);
+    } else {
+      lines.push(`○ ${b.name} — No observation`);
+    }
+  });
+  lines.push('');
+  lines.push('— Sent from WowaSticker');
+  return lines.join('\n');
+}
+
+window.selectBlock = function(i) { selected = i; refresh(); };
+window.score = function(blockId, value) {
+  setSticker(blockId, value);
+  const blocks = getBlocks();
+  const b = blocks.find(x => x.id === blockId);
+  document.getElementById('status').textContent = `${b ? b.name : ''}: saved!`;
+  refresh();
+};
+window.shareReport = function() {
+  const text = getReport();
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => {
+      document.getElementById('status').textContent = 'Report copied to clipboard!';
+    });
+  } else if (navigator.share) {
+    navigator.share({ text });
+  }
+};
+
+function refresh() {
+  const blocks = getBlocks();
+  document.getElementById('title').textContent = `${data.student.name}'s Sticker Chart`;
+  document.getElementById('progress').textContent = getProgress();
+  let html = '';
+  blocks.forEach((b, i) => {
+    const sel = i === selected ? 'selected' : '';
+    const sticker = b.value === 2 ? '●●' : b.value === 1 ? '●' : '○';
+    html += `<div class="card ${sel}" onclick="selectBlock(${i})">`;
+    html += `<div class="card-header"><span>${b.name}</span><span>${sticker}</span></div>`;
+    if (i === selected) {
+      html += '<div class="score-btns">';
+      for (let v = 0; v <= 2; v++) {
+        const cls = b.value === v ? `a${v}` : '';
+        html += `<button class="${cls}" onclick="score(${b.id},${v}); event.stopPropagation();">${v}</button>`;
+      }
+      html += '</div>';
+    }
+    if (b.note) html += `<div class="note">"${b.note}"</div>`;
+    html += '</div>';
+  });
+  document.getElementById('blocks').innerHTML = html;
+}
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+
+refresh();
+</script>
+</body>
+</html>

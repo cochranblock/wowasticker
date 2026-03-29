@@ -6027,6 +6027,7 @@ dependencies = [
  "tempfile",
  "tokenizers",
  "tokio",
+ "wasm-bindgen",
 ]
 
 [[package]]

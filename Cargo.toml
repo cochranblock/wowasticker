@@ -54,6 +54,7 @@ exopack = { git = "https://github.com/cochranblock/exopack", optional = true, fe
 tokenizers = { version = "0.19", optional = true }
 rand = { version = "0.8", optional = true }
 jni = { version = "0.21", optional = true }
+wasm-bindgen = { version = "0.2", optional = true }
 
 [dev-dependencies]
 tempfile = "3"
@@ -64,6 +65,7 @@ dioxus = ["dep:dioxus"]
 candle = ["dep:candle-core", "dep:candle-nn", "dep:candle-transformers", "dep:tokenizers", "dep:rand"]
 audio = ["dep:cpal"]
 jni = ["dep:jni"]
+wasm = ["dep:wasm-bindgen"]
 tests = ["exopack"]
 
 [workspace]

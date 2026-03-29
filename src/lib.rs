@@ -11,3 +11,5 @@ pub mod db;
 #[cfg(feature = "jni")]
 pub mod jni;
 pub mod report;
+#[cfg(feature = "wasm")]
+pub mod wasm;

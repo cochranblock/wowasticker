@@ -50,27 +50,40 @@ Pure Rust, offline-first mobile app for student behavioral goals. Local AI dicta
 Wire flow: User tap ─► audio capture ─► transcribe ─► parse ─► db write ─► UI refresh
 ```
 
+## Supported Platforms
+
+| Platform | Target | Binary | Status |
+|----------|--------|--------|--------|
+| macOS ARM | aarch64-apple-darwin | wowasticker-cli | Builds, tested |
+| macOS Intel | x86_64-apple-darwin | wowasticker-cli | Builds |
+| Linux x86_64 | x86_64-unknown-linux-gnu | wowasticker-cli | Builds (st) |
+| Linux ARM64 | aarch64-unknown-linux-gnu | wowasticker-cli | Via cross |
+| Linux ARM32 | armv7-unknown-linux-gnueabihf | wowasticker-cli | Via cross |
+| Windows | x86_64-pc-windows-gnu | wowasticker-cli | Via cross |
+| FreeBSD | x86_64-unknown-freebsd | wowasticker-cli | Via cross |
+| RISC-V | riscv64gc-unknown-linux-gnu | wowasticker-cli | Via cross |
+| IBM POWER | powerpc64le-unknown-linux-gnu | wowasticker-cli | Via cross |
+| Android | aarch64-linux-android | APK (WebView + JNI) | Scaffold ready |
+| iOS | aarch64-apple-ios | lib | Target added |
+| Web/PWA | wasm32-unknown-unknown | pwa/ (offline) | JS fallback works |
+
 ## Build
 
-Default features include `dioxus`, `candle`, and `audio`. A plain `cargo build` enables all three.
-
-**Desktop (Linux):** Install GTK/WebKit deps, then:
-
 ```bash
-# Full build (default: dioxus + candle + audio)
-cargo build -p wowasticker
+# CLI binary (works on all platforms, no optional deps)
+cargo build --release --bin wowasticker-cli --no-default-features
 
-# Lib only (no UI/audio/candle — for tests or CI)
-cargo build -p wowasticker --no-default-features
+# All available targets
+./scripts/build-all-targets.sh
+
+# Android APK (requires Android SDK + NDK)
+./scripts/build-android.sh
+
+# PWA (optional WASM, JS fallback works without it)
+./scripts/build-pwa.sh
 ```
 
-**macOS:** Build with GTK/WebKit (via Homebrew):
-
-```bash
-cargo build -p wowasticker --release
-```
-
-**Linux deps (Ubuntu/Debian):**
+**Linux deps (Ubuntu/Debian) for full GUI build:**
 ```bash
 sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev libasound2-dev
 ```
