@@ -21,6 +21,7 @@ android {
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.debug
         }
     }
 
@@ -29,26 +30,14 @@ android {
             jniLibs.srcDirs = ['src/main/jniLibs']
         }
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
 }
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'com.google.android.material:material:1.12.0'
 }
-
-// Task: build Rust .so before assembling
-task buildRustLib(type: Exec) {
-    workingDir rootProject.projectDir.parentFile
-    environment 'PATH', System.getenv('PATH') + ':' + System.getenv('HOME') + '/.cargo/bin'
-    commandLine 'cargo', 'build', '--release',
-            '--target', 'aarch64-linux-android',
-            '--lib', '--no-default-features',
-            '-p', 'wowasticker'
-}
-
-task copyRustLib(type: Copy, dependsOn: buildRustLib) {
-    from "${rootProject.projectDir.parentFile}/target/aarch64-linux-android/release/libwowasticker.so"
-    into 'src/main/jniLibs/arm64-v8a'
-}
-
-preBuild.dependsOn copyRustLib

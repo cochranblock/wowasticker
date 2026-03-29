@@ -5,3 +5,5 @@
 # Claude Code worktrees
 .claude/worktrees/
 release/
+android/app/build/
+android/.gradle/

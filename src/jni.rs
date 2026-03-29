@@ -4,6 +4,7 @@
 //! Feature-gated: only compiled with --features jni.
 
 #[cfg(feature = "jni")]
+#[allow(unused_mut)]
 mod imp {
     use crate::db::{t119, t123};
     use crate::report;

@@ -144,7 +144,6 @@ public class MainActivity extends Activity {
             + "  } catch(e) { document.getElementById('status').textContent = 'Share failed'; }\n"
             + "}\n"
             + "refresh();\n"
-            + "</script></body></html>";\n"
-            ;
+            + "</script></body></html>";
     }
 }
