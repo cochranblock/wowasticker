@@ -37,6 +37,10 @@ P13 tokenization for traceability. All public symbols use compressed identifiers
 | f145 | count_stickers_for_date | db |
 | f146 | delete_sticker | db |
 | f147 | generate_daily_report | report |
+| f148 | wowasticker_cli (main) | bin/cli |
+| f149 | MainActivity | android (Java) |
+| f150 | JNI bridge | jni |
+| f151 | WASM bridge | wasm |
 
 ## Types (tN)
 

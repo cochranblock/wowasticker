@@ -30,7 +30,7 @@ flowchart TD
 
 | Metric | Value |
 |--------|-------|
-| Lines of Rust | 1,639 across 8 files (7 modules + test binary) |
+| Lines of Rust | 2,106 across 11 files (9 modules + 2 binaries) |
 | AI model | Whisper-Tiny GGUF (on-device, no cloud) |
 | UI framework | Dioxus 0.5 (pure Rust, mobile-native) |
 | Audio | cpal (cross-platform mic capture) |
@@ -43,13 +43,17 @@ flowchart TD
 | Compressed symbols | 29 functions (f119-f147), 7 types (t119-t125), 18 fields (s0-s17) |
 | Dependencies (lib) | 6 (anyhow, chrono, rusqlite, serde, serde_json, tokio) |
 | Federal compliance docs | 11 (govdocs/) |
+| Platform targets | 12 (macOS ARM/Intel, Linux x86/ARM64/ARM32, Windows, FreeBSD, RISC-V, POWER, Android, iOS, WASM) |
 
 ## Binary Size (Release)
 
 | Target | Artifact | Size |
 |--------|----------|------|
-| aarch64-apple-darwin | rlib (lib) | 420,736 bytes (411 KB) |
-| aarch64-apple-darwin | test binary | 320,848 bytes (313 KB) |
+| aarch64-apple-darwin | wowasticker-cli | 1,326,480 bytes (1.3 MB) |
+| x86_64-apple-darwin | wowasticker-cli | 1,387,368 bytes (1.3 MB) |
+| x86_64-unknown-linux-gnu | wowasticker-cli | 1,521,864 bytes (1.5 MB) |
+| aarch64-linux-android | AAB (Play Store) | 4,855,229 bytes (4.6 MB) |
+| aarch64-linux-android | APK (sideload) | 6,117,386 bytes (5.8 MB) |
 
 Release profile: `opt-level = 'z'`, LTO, `codegen-units = 1`, `panic = 'abort'`, `strip = true`.
 
@@ -88,6 +92,12 @@ Release profile: `opt-level = 'z'`, LTO, `codegen-units = 1`, `panic = 'abort'`,
 | TRIPLE SIMS | 3-pass test via exopack — real tempfile SQLite, no mocks |
 | Feature Gates | Tests run without audio/UI libs (--no-default-features) |
 | Cargo.lock | Pinned 602 dependency versions for reproducible builds |
+| CLI Binary | wowasticker-cli: demo, govdocs, --sbom. First working entry point. Bakes 11 govdocs + SPDX SBOM |
+| Android AAB | Play Store bundle with JNI bridge (f150). WebView UI with tap-to-score, daily report, progress |
+| Android APK | Sideloadable APK. Same JNI bridge + embedded HTML UI |
+| PWA | Installable web app: manifest.json, service worker, JS fallback. Works offline without WASM |
+| WASM Bridge | f151: wasm_get_blocks, wasm_set_sticker, wasm_get_report, wasm_get_progress. In-memory SQLite |
+| Multi-Arch | 12 platform targets. build-all-targets.sh for native + cross builds |
 | Federal Compliance | 11 govdocs: SBOM, SSDF, supply chain, security, accessibility, privacy, FIPS, FedRAMP, CMMC, ITAR/EAR, federal use cases |
 
 ## How to Verify

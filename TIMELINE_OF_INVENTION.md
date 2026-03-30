@@ -10,6 +10,30 @@
 
 ## Entries
 
+### 2026-03-29 — Android AAB + APK Built
+
+**What:** Real Play Store-ready AAB (4.6 MB) and sideload APK (5.8 MB). Fixed Java syntax error in MainActivity, generated Gradle wrapper, built libwowasticker.so via cargo-ndk. Both uploaded to GitHub Release v0.2.0.
+**Commit:** `84678de`
+**AI Role:** AI built the full Android pipeline. Human provided NDK path and directed Play Store targeting.
+
+### 2026-03-29 — PWA + 12-Platform Build System
+
+**What:** Installable PWA with offline service worker, JS fallback (works without WASM), manifest.json, SVG icons. WASM bridge module (f151). Master build script for 12 targets. macOS Intel binary added to release.
+**Commit:** `9862097`
+**AI Role:** AI built PWA, WASM bridge, and build scripts. Human directed platform coverage.
+
+### 2026-03-29 — Multi-Arch Release + Android Scaffold
+
+**What:** Linux x86_64 binary built on st via vendored tarball. Android project structure (Gradle, JNI bridge, WebView MainActivity). crate-type cdylib for .so generation. Crates.io metadata added to Cargo.toml.
+**Commit:** `7d874b6`
+**AI Role:** AI built cross-platform infrastructure. Human directed st deployment and Android package name.
+
+### 2026-03-28 — CLI Binary: Working Demo + Runtime Govdocs
+
+**What:** New wowasticker-cli binary — first working entry point. Full sticker workflow demo (create→score→report→undo→history). 11 govdocs baked via include_str!(). SPDX 2.3 SBOM parsed live from baked Cargo.toml. 1.3 MB binary with bundled SQLite + compliance docs.
+**Commit:** `785bd3d`
+**AI Role:** AI built the CLI. Human directed the dogfooding pattern (binary IS the compliance artifact).
+
 ### 2026-03-27 — Federal Compliance Suite
 
 **What:** 11 govdocs for federal procurement readiness: SBOM (EO 14028), SSDF (NIST 800-218), supply chain integrity, security posture, Section 508 accessibility, PRIVACY (GDPR/CCPA/COPPA/FERPA), FIPS status, FedRAMP notes, CMMC mapping, ITAR/EAR classification, federal use cases (DoDEA, VA, Head Start, BIE, BOP).

@@ -1,9 +1,17 @@
 /target
 *.db
 *.gguf
+*.log
+*.safetensors
+.DS_Store
+.env
+vendor/
 
 # Claude Code worktrees
 .claude/worktrees/
+
+# Build outputs
 release/
+android/build/
 android/app/build/
 android/.gradle/
