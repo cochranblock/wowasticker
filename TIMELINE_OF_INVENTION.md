@@ -10,6 +10,12 @@
 
 ## Entries
 
+### 2026-03-30 — Polish Pass
+
+**What:** Updated TOI with 4 new entries, POA with current metrics (2,106 LOC, 5 release assets, 6 new key artifacts). Added f148-f151 to compression map. Fixed .gitignore (android/build/, .DS_Store, vendor/). Verified: clippy -D warnings PASS, 40 tests PASS, TRIPLE SIMS 3x PASS.
+**Commit:** `3e81290`
+**AI Role:** AI ran full polish audit. Human directed the verification protocol.
+
 ### 2026-03-29 — Android AAB + APK Built
 
 **What:** Real Play Store-ready AAB (4.6 MB) and sideload APK (5.8 MB). Fixed Java syntax error in MainActivity, generated Gradle wrapper, built libwowasticker.so via cargo-ndk. Both uploaded to GitHub Release v0.2.0.
