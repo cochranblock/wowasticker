@@ -31,7 +31,7 @@ required-features = ["tests"]
 
 [dependencies]
 # Dioxus for pure Rust mobile UI (optional: tests run without GTK)
-dioxus = { version = "0.5", optional = true, features = ["mobile"] }
+dioxus = { version = "0.5", optional = true, features = ["desktop"] }
 
 # Hugging Face Candle for local AI inference (Whisper GGUF) — optional for tests
 candle-core = { version = "0.8", optional = true }

@@ -45,6 +45,7 @@ fn shift_date(date: &str, days: i64) -> String {
 }
 
 /// t125=t125. What was heard, scored, and tagged.
+#[allow(non_camel_case_types)]
 struct t125 {
     s13: String,
     s14: i64,
@@ -199,16 +200,16 @@ pub fn App() -> Element {
             div {
                 style: "flex-grow: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;",
                 for (i, block) in blocks.read().iter().enumerate() {
-                    f139 {
+                    ScheduleCard {
                         block: block.clone(),
                         is_selected: is_today && selected_block() == i,
                         is_today: is_today,
-                        on_select: move |_| {
+                        card_select: move |_| {
                             if is_today {
                                 selected_block.set(i);
                             }
                         },
-                        on_score: move |val: t119| {
+                        card_score: move |val: t119| {
                             let blk = blocks.read()[i].clone();
                             if let Some(ref d) = db() {
                                 let _ = d.f135(blk.s0, val, None);
@@ -351,12 +352,12 @@ pub fn App() -> Element {
 
 /// f139=ScheduleCard. Block card with sticker display, note, tap-to-score.
 #[component]
-fn f139(
+fn ScheduleCard(
     block: t120,
     is_selected: bool,
     is_today: bool,
-    on_select: EventHandler<MouseEvent>,
-    on_score: EventHandler<t119>,
+    card_select: EventHandler<MouseEvent>,
+    card_score: EventHandler<t119>,
     db: Option<Arc<t123>>,
     date: String,
     _refresh: u32,
@@ -384,21 +385,20 @@ fn f139(
         "2px solid transparent"
     };
     let show_score_buttons = is_selected && is_today;
+    let bg_zero = if sticker_val == t119::Zero { "#ffcdd2" } else { "#fff" };
+    let bg_one = if sticker_val == t119::One { "#fff9c4" } else { "#fff" };
+    let bg_two = if sticker_val == t119::Two { "#c8e6c9" } else { "#fff" };
+    let btn_base = "flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc; cursor: pointer; font-size: 0.85rem;";
+    let sticker_display = sticker_str(sticker_val);
 
     rsx! {
         div {
             style: "padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; background: {bg}; border: {border};",
-            onclick: move |e| on_select.call(e),
+            onclick: move |e| card_select.call(e),
             div {
                 style: "display: flex; justify-content: space-between; align-items: center;",
                 div { style: "font-weight: 600;", "{block.s1}" }
-                div { style: "font-size: 1rem;",
-                    match sticker_val {
-                        t119::Zero => "○",
-                        t119::One => "●",
-                        t119::Two => "●●",
-                    }
-                }
+                div { style: "font-size: 1rem;", "{sticker_display}" }
             }
             if !note_text.is_empty() {
                 div {
@@ -410,18 +410,18 @@ fn f139(
                 div {
                     style: "display: flex; gap: 8px; margin-top: 8px;",
                     button {
-                        style: "flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc; background: {if sticker_val == t119::Zero { \"#ffcdd2\" } else { \"#fff\" }}; cursor: pointer; font-size: 0.85rem;",
-                        onclick: move |evt| { evt.stop_propagation(); on_score.call(t119::Zero); },
+                        style: "{btn_base} background: {bg_zero};",
+                        onclick: move |evt| { evt.stop_propagation(); card_score.call(t119::Zero); },
                         "0"
                     }
                     button {
-                        style: "flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc; background: {if sticker_val == t119::One { \"#fff9c4\" } else { \"#fff\" }}; cursor: pointer; font-size: 0.85rem;",
-                        onclick: move |evt| { evt.stop_propagation(); on_score.call(t119::One); },
+                        style: "{btn_base} background: {bg_one};",
+                        onclick: move |evt| { evt.stop_propagation(); card_score.call(t119::One); },
                         "1"
                     }
                     button {
-                        style: "flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc; background: {if sticker_val == t119::Two { \"#c8e6c9\" } else { \"#fff\" }}; cursor: pointer; font-size: 0.85rem;",
-                        onclick: move |evt| { evt.stop_propagation(); on_score.call(t119::Two); },
+                        style: "{btn_base} background: {bg_two};",
+                        onclick: move |evt| { evt.stop_propagation(); card_score.call(t119::Two); },
                         "2"
                     }
                 }
