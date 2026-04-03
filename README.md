@@ -15,7 +15,7 @@
 
 # wowasticker
 
-Pure Rust, offline-first mobile app for student behavioral goals. Local AI dictation via Candle Whisper, SQLite persistence, thumb-zone optimized UI.
+Pure Rust, offline-first mobile app for student behavioral goals. SQLite persistence, thumb-zone optimized UI. Manual tap-to-score (0/1/2) works today. Voice dictation via Candle Whisper is scaffolded (model loads, inference not yet wired).
 
 ## Architecture
 
@@ -50,22 +50,38 @@ Pure Rust, offline-first mobile app for student behavioral goals. Local AI dicta
 Wire flow: User tap ─► audio capture ─► transcribe ─► parse ─► db write ─► UI refresh
 ```
 
-## Supported Platforms
+## What Works Today
 
-| Platform | Target | Binary | Status |
-|----------|--------|--------|--------|
-| macOS ARM | aarch64-apple-darwin | wowasticker-cli | Builds, tested |
-| macOS Intel | x86_64-apple-darwin | wowasticker-cli | Builds |
-| Linux x86_64 | x86_64-unknown-linux-gnu | wowasticker-cli | Builds (st) |
-| Linux ARM64 | aarch64-unknown-linux-gnu | wowasticker-cli | Via cross |
-| Linux ARM32 | armv7-unknown-linux-gnueabihf | wowasticker-cli | Via cross |
-| Windows | x86_64-pc-windows-gnu | wowasticker-cli | Via cross |
-| FreeBSD | x86_64-unknown-freebsd | wowasticker-cli | Via cross |
-| RISC-V | riscv64gc-unknown-linux-gnu | wowasticker-cli | Via cross |
-| IBM POWER | powerpc64le-unknown-linux-gnu | wowasticker-cli | Via cross |
-| Android | aarch64-linux-android | APK (WebView + JNI) | Scaffold ready |
-| iOS | aarch64-apple-ios | lib | Target added |
-| Web/PWA | wasm32-unknown-unknown | pwa/ (offline) | JS fallback works |
+- **Tap-to-score** — Select a schedule block, tap 0/1/2 to record a sticker. No voice needed.
+- **Daily report** — Generate plain-text report, copy to clipboard for sharing with parents.
+- **Date navigation** — Browse past days (read-only). Today is editable.
+- **Undo** — Remove last sticker entry.
+- **CLI demo** — `wowasticker-cli demo` runs a full workflow without GUI dependencies.
+- **40 unit tests** — DB, parser, report, audio stub. TRIPLE SIMS verified.
+
+## What's Scaffolded (Not Yet Functional)
+
+- **Voice dictation** — Audio capture works (cpal, 10s, 16kHz resample). Whisper model loads but inference is not wired (`let _ = samples` in f137). Always returns "Processed".
+- **Desktop GUI** — Dioxus 0.5 UI code exists but desktop build has a wry API mismatch. CLI binary builds and runs.
+- **Android** — JNI bridge + Gradle project exist. APK builds but has no native UI layer.
+- **Multi-student** — `students` table exists but `sticker_records` has no `student_id`. Single-student only.
+
+## Supported Platforms (CLI Binary)
+
+| Platform | Target | Status |
+|----------|--------|--------|
+| macOS ARM | aarch64-apple-darwin | Builds, tested |
+| macOS Intel | x86_64-apple-darwin | Builds, tested |
+| Linux x86_64 | x86_64-unknown-linux-gnu | Builds, tested (IRONHIVE) |
+| Linux ARM64 | aarch64-unknown-linux-gnu | Via cross |
+| Linux ARM32 | armv7-unknown-linux-gnueabihf | Via cross |
+| Windows | x86_64-pc-windows-gnu | Via cross |
+| FreeBSD | x86_64-unknown-freebsd | Via cross |
+| RISC-V | riscv64gc-unknown-linux-gnu | Via cross |
+| IBM POWER | powerpc64le-unknown-linux-gnu | Via cross |
+| Android | aarch64-linux-android | JNI scaffold |
+| iOS | aarch64-apple-ios | lib only |
+| Web/PWA | wasm32-unknown-unknown | JS fallback works |
 
 ## Build
 
@@ -96,17 +112,19 @@ sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev libasound2-dev
 |--------|---------|
 | `db` | SQLite: students, schedule_blocks, sticker_records. Student CRUD, `list_day_records()` for daily view, `count_stickers_for_date()`, `delete_sticker()` for undo |
 | `audio` | cpal capture, 10s buffer, resample to 16kHz. Feature-gated (`--features audio`) |
-| `ai` | `transcribe_audio()` Candle Whisper GGUF; `extract_behavior()` → score + note + tags; `extract_tags()` heuristic tag extraction; `parse_sticker_from_transcription()` heuristics |
+| `ai` | `transcribe_audio()` Candle Whisper GGUF (scaffolded, not yet wired); `extract_behavior()` → score + note + tags; `parse_sticker_from_transcription()` heuristics (works on any text input) |
 | `report` | `generate_daily_report()` — plain-text daily sticker report for sharing with parents |
 | `ui` | Dioxus App, ScheduleCard (with notes), date navigation, `run_dictation_flow()`, daily report share (clipboard), undo last dictation, progress counter |
 
 ## Data Flow
 
 1. User taps schedule block → selects it
-2. User taps "Dictate Observation" → `capture_audio()` (10s) → `transcribe_audio()` → `extract_behavior()` → `db.set_sticker_today_with_note()`
-3. UI refreshes via `refresh` signal
-4. User taps "Share Daily Report" → `list_day_records()` → `generate_daily_report()` → clipboard
-5. User taps date arrows to navigate history (past days are read-only)
+2. **Tap-to-score (working):** User taps 0/1/2 button → `db.set_sticker_today_with_note()` → UI refreshes
+3. **Voice dictation (scaffolded):** User taps "Dictate Observation" → `capture_audio()` (10s) → `transcribe_audio()` → `extract_behavior()` → `db.set_sticker_today_with_note()`
+4. UI refreshes via `refresh` signal
+5. User taps "Share Daily Report" → `list_day_records()` → `generate_daily_report()` → clipboard
+6. User taps date arrows to navigate history (past days are read-only)
+7. User taps "Undo" to remove last sticker entry
 
 ## Model
 
@@ -118,7 +136,7 @@ sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev libasound2-dev
 export WOWASTICKER_WHISPER_PATH=/path/to/model-tiny-q4k.gguf
 ```
 
-The download script fetches `model-tiny-q4k.gguf`, `config-tiny.json`, `tokenizer-tiny.json`, and `melfilters.bytes` from HuggingFace. Candle 0.8 loads GGUF; full decode pipeline (mel→encoder→decoder→tokenizer) is scaffolded. Heuristic `extract_behavior()` runs regardless of model availability.
+The download script fetches `model-tiny-q4k.gguf`, `config-tiny.json`, `tokenizer-tiny.json`, and `melfilters.bytes` from HuggingFace. Candle 0.8 loads the GGUF model, but the full decode pipeline (mel spectrogram → encoder → decoder → tokenizer) is not yet implemented. Heuristic `extract_behavior()` runs on any text input regardless of model availability.
 
 ## Test
 
