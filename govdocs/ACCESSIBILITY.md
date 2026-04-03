@@ -1,3 +1,6 @@
+<!-- Unlicense — cochranblock.org -->
+<!-- Contributors: GotEmCoach, KOVA, Claude Opus 4.6, SuperNinja, Composer 1.5, Google Gemini Pro 3 -->
+
 # Accessibility Compliance — Section 508 / WCAG 2.1
 
 This is free and unencumbered software released into the public domain.
@@ -100,3 +103,7 @@ wowasticker provides some accessibility features but has known gaps. This docume
 ## Dioxus Accessibility Roadmap
 
 Dioxus framework is actively developing accessibility support. As Dioxus adds native ARIA support and accessibility tree integration, wowasticker will adopt these features.
+
+---
+
+*Part of [wowasticker](https://github.com/cochranblock/wowasticker) — [CochranBlock](https://cochranblock.org) zero-cloud architecture. Unlicense.*

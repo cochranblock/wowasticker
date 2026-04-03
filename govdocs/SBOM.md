@@ -1,3 +1,6 @@
+<!-- Unlicense — cochranblock.org -->
+<!-- Contributors: GotEmCoach, KOVA, Claude Opus 4.6, SuperNinja, Composer 1.5, Google Gemini Pro 3 -->
+
 # Software Bill of Materials (SBOM)
 
 This is free and unencumbered software released into the public domain.
@@ -64,3 +67,7 @@ Format: Human-readable (CycloneDX/SPDX export available via `cargo sbom`)
 ## Verification
 
 All dependencies sourced from crates.io. Versions pinned in `Cargo.lock` (committed to repository). Dependency tree reproducible via `cargo tree`. Audit via `cargo audit`.
+
+---
+
+*Part of [wowasticker](https://github.com/cochranblock/wowasticker) — [CochranBlock](https://cochranblock.org) zero-cloud architecture. Unlicense.*

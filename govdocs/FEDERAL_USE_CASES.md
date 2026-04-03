@@ -1,3 +1,6 @@
+<!-- Unlicense — cochranblock.org -->
+<!-- Contributors: GotEmCoach, KOVA, Claude Opus 4.6, SuperNinja, Composer 1.5, Google Gemini Pro 3 -->
+
 # Federal Use Cases
 
 This is free and unencumbered software released into the public domain.
@@ -125,3 +128,7 @@ Install on BOP-issued instructor tablets. Devices managed by facility IT. Data e
 | SBOM available | Full software bill of materials in govdocs/SBOM.md |
 | Source available | Build from source, audit the code, modify as needed |
 | Rust memory safety | Eliminates buffer overflow, use-after-free, and null pointer CVE classes |
+
+---
+
+*Part of [wowasticker](https://github.com/cochranblock/wowasticker) — [CochranBlock](https://cochranblock.org) zero-cloud architecture. Unlicense.*

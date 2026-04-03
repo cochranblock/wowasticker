@@ -1,3 +1,6 @@
+<!-- Unlicense — cochranblock.org -->
+<!-- Contributors: GotEmCoach, KOVA, Claude Opus 4.6, SuperNinja, Composer 1.5, Google Gemini Pro 3 -->
+
 # Privacy Impact Assessment
 
 This is free and unencumbered software released into the public domain.
@@ -107,3 +110,7 @@ Risk is limited to physical device theft or compromise. In such an event:
 - SQLite database is not encrypted (data is sticker scores, not high-sensitivity PII)
 - Device-level encryption (iOS/Android full-disk encryption) provides the primary protection
 - No network exfiltration path exists in the application
+
+---
+
+*Part of [wowasticker](https://github.com/cochranblock/wowasticker) — [CochranBlock](https://cochranblock.org) zero-cloud architecture. Unlicense.*

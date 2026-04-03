@@ -1,3 +1,6 @@
+<!-- Unlicense — cochranblock.org -->
+<!-- Contributors: GotEmCoach, KOVA, Claude Opus 4.6, SuperNinja, Composer 1.5, Google Gemini Pro 3 -->
+
 # CMMC (Cybersecurity Maturity Model Certification) Assessment
 
 This is free and unencumbered software released into the public domain.
@@ -100,3 +103,7 @@ Not applicable. Single-developer open-source project. No personnel access contro
 ## Summary
 
 wowasticker's offline, single-user, no-network architecture satisfies many CMMC Level 1 practices by design (no communications to protect, no external connections to control). Practices related to multi-user access, incident response, and personnel security are not applicable to a standalone device application.
+
+---
+
+*Part of [wowasticker](https://github.com/cochranblock/wowasticker) — [CochranBlock](https://cochranblock.org) zero-cloud architecture. Unlicense.*

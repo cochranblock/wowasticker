@@ -1,3 +1,6 @@
+<!-- Unlicense — cochranblock.org -->
+<!-- Contributors: GotEmCoach, KOVA, Claude Opus 4.6, SuperNinja, Composer 1.5, Google Gemini Pro 3 -->
+
 # ITAR / EAR Export Control Assessment
 
 This is free and unencumbered software released into the public domain.
@@ -68,3 +71,7 @@ Per BIS (Bureau of Industry and Security) guidance, publicly available encryptio
 | EAR Cat 5 Part 2 | No | No encryption used |
 
 No export license is required to distribute wowasticker to any destination, with the exception of comprehensively sanctioned countries/entities per OFAC regulations (which apply to all US-origin items regardless of classification).
+
+---
+
+*Part of [wowasticker](https://github.com/cochranblock/wowasticker) — [CochranBlock](https://cochranblock.org) zero-cloud architecture. Unlicense.*

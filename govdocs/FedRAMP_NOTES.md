@@ -1,3 +1,6 @@
+<!-- Unlicense — cochranblock.org -->
+<!-- Contributors: GotEmCoach, KOVA, Claude Opus 4.6, SuperNinja, Composer 1.5, Google Gemini Pro 3 -->
+
 # FedRAMP Applicability Assessment
 
 This is free and unencumbered software released into the public domain.
@@ -47,3 +50,7 @@ If a federal agency wishes to deploy wowasticker on government devices, the rele
 ## Recommendation
 
 Federal agencies should evaluate wowasticker under their standard software approval process for on-device applications. The SBOM, SSDF, and Security documents in this directory provide the information needed for that evaluation.
+
+---
+
+*Part of [wowasticker](https://github.com/cochranblock/wowasticker) — [CochranBlock](https://cochranblock.org) zero-cloud architecture. Unlicense.*

@@ -126,3 +126,7 @@ Pin dependency versions so the build is reproducible. The Dioxus 0.5 + wry versi
 ---
 
 *Analysis performed 2026-03-27. Simulated user: classroom teacher evaluating behavior tracking tools.*
+
+---
+
+*Part of [wowasticker](https://github.com/cochranblock/wowasticker) — [CochranBlock](https://cochranblock.org) zero-cloud architecture. Unlicense.*

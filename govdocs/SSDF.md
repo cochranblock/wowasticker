@@ -1,3 +1,6 @@
+<!-- Unlicense — cochranblock.org -->
+<!-- Contributors: GotEmCoach, KOVA, Claude Opus 4.6, SuperNinja, Composer 1.5, Google Gemini Pro 3 -->
+
 # NIST SP 800-218 — Secure Software Development Framework (SSDF)
 
 This is free and unencumbered software released into the public domain.
@@ -70,3 +73,7 @@ This means a minimal build (`--no-default-features`) includes only: anyhow, chro
 ## Summary
 
 The offline-first, no-network architecture of wowasticker makes many SSDF practices either straightforward (no server to secure) or not applicable (no cloud deployment). The primary security controls are: Rust memory safety, dependency pinning, clippy enforcement, and the TRIPLE SIMS test gate.
+
+---
+
+*Part of [wowasticker](https://github.com/cochranblock/wowasticker) — [CochranBlock](https://cochranblock.org) zero-cloud architecture. Unlicense.*

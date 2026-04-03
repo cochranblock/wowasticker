@@ -78,7 +78,7 @@ Release profile: `opt-level = 'z'`, LTO, `codegen-units = 1`, `panic = 'abort'`,
 | Artifact | Description |
 |----------|-------------|
 | Tap-to-Score | Manual sticker entry: tap 0/1/2 on any selected card. Works without voice pipeline |
-| On-Device Whisper | Candle Whisper-Tiny GGUF — speech-to-text runs entirely on-device. No API calls, no privacy leaks |
+| On-Device Whisper | Candle Whisper-Tiny GGUF — model loads on-device. Inference pipeline scaffolded (not yet wired). No API calls, no privacy leaks |
 | Heuristic Parser | great/excellent → 2 stickers, good/ok → 1 sticker, refusal/elopement → 0. Works even if Whisper fails |
 | Thumb-Zone UI | All controls in bottom half of screen for one-handed use. Safe-area insets respect notches |
 | Behavioral Tags | Auto-extracted from transcription: elopement, refusal, combative, finish_work, positive |
@@ -100,6 +100,16 @@ Release profile: `opt-level = 'z'`, LTO, `codegen-units = 1`, `panic = 'abort'`,
 | Multi-Arch | 12 platform targets. build-all-targets.sh for native + cross builds |
 | Federal Compliance | 11 govdocs: SBOM, SSDF, supply chain, security, accessibility, privacy, FIPS, FedRAMP, CMMC, ITAR/EAR, federal use cases |
 
+## IRONHIVE Swarm Verification (2026-04-01)
+
+| Node | Hostname | CPUs | RAM | Tests | Release Build |
+|------|----------|------|-----|-------|---------------|
+| n0/lf | kova-legion-forge | 14 | 30G | 40/40 PASS | -- |
+| n1/gd | kova-tunnel-god | 20 | 31G | 40/40 PASS (3x) | 1,523,208 bytes (1.5 MB) |
+| n3/st | kova-elite-support | 20 | 15G | 40/40 PASS | -- |
+
+Rust 1.94.x bootstrapped on all 3 nodes. TRIPLE SIMS verified on gd.
+
 ## How to Verify
 
 ```bash
@@ -107,6 +117,12 @@ cargo build --release -p wowasticker --no-default-features
 cargo test -p wowasticker --no-default-features           # 40 tests
 cargo run -p wowasticker --bin wowasticker-test --features tests  # TRIPLE SIMS
 ```
+
+## See Also
+
+- [Timeline of Invention](TIMELINE_OF_INVENTION.md) — dated commit-level build record
+- [User Story Analysis](USER_STORY_ANALYSIS.md) — simulated teacher walkthrough
+- [Federal Compliance](govdocs/) — 11 procurement-readiness documents
 
 ---
 

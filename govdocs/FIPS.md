@@ -1,3 +1,6 @@
+<!-- Unlicense — cochranblock.org -->
+<!-- Contributors: GotEmCoach, KOVA, Claude Opus 4.6, SuperNinja, Composer 1.5, Google Gemini Pro 3 -->
+
 # FIPS 140-2/3 Applicability Assessment
 
 This is free and unencumbered software released into the public domain.
@@ -50,3 +53,7 @@ If encryption is required for federal deployment, aws-lc-rs with its FIPS-valida
 - NIST FIPS 140-2: Security Requirements for Cryptographic Modules
 - NIST FIPS 140-3: Security Requirements for Cryptographic Modules (supersedes 140-2)
 - CMVP (Cryptographic Module Validation Program): https://csrc.nist.gov/projects/cryptographic-module-validation-program
+
+---
+
+*Part of [wowasticker](https://github.com/cochranblock/wowasticker) — [CochranBlock](https://cochranblock.org) zero-cloud architecture. Unlicense.*

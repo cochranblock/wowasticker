@@ -1,3 +1,6 @@
+<!-- Unlicense — cochranblock.org -->
+<!-- Contributors: GotEmCoach, KOVA, Claude Opus 4.6, SuperNinja, Composer 1.5, Google Gemini Pro 3 -->
+
 # Security Assessment
 
 This is free and unencumbered software released into the public domain.
@@ -98,3 +101,7 @@ Free-text observation notes could contain sensitive information if the user writ
 ## Incident Response
 
 Not applicable in the traditional sense — there is no server, no network service, no cloud component. A vulnerability in the app would be addressed via a new build from updated source.
+
+---
+
+*Part of [wowasticker](https://github.com/cochranblock/wowasticker) — [CochranBlock](https://cochranblock.org) zero-cloud architecture. Unlicense.*

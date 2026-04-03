@@ -1,3 +1,6 @@
+<!-- Unlicense — cochranblock.org -->
+<!-- Contributors: GotEmCoach, KOVA, Claude Opus 4.6, SuperNinja, Composer 1.5, Google Gemini Pro 3 -->
+
 # Software Supply Chain Security
 
 This is free and unencumbered software released into the public domain.
@@ -91,3 +94,7 @@ When the `candle` feature is enabled, the app can download a Whisper model from 
 - User-initiated (not automatic)
 - One-time (model is cached locally after download)
 - Optional (candle feature must be explicitly enabled at compile time)
+
+---
+
+*Part of [wowasticker](https://github.com/cochranblock/wowasticker) — [CochranBlock](https://cochranblock.org) zero-cloud architecture. Unlicense.*
