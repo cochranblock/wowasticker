@@ -30,20 +30,109 @@ pub async fn f119(path: &Path, samples: &[f32]) -> Result<String> {
 /// f137=transcribe_audio_sync. Load GGUF, run mel→encoder→decoder→tokenizer (candle).
 #[cfg(feature = "candle")]
 fn f137(path: &Path, samples: &[f32]) -> Result<String> {
-    use candle_transformers::models::whisper::{quantized_model::Whisper, Config};
+    use candle_transformers::models::whisper::{
+        audio::pcm_to_mel, quantized_model::Whisper, Config, EOT_TOKEN, N_SAMPLES,
+        NO_TIMESTAMPS_TOKEN, SOT_TOKEN, TRANSCRIBE_TOKEN,
+    };
     use candle_transformers::quantized_var_builder::VarBuilder;
-    use candle_core::Device;
+    use candle_core::{Device, IndexOp, Tensor, D};
     use std::fs;
 
     let device = Device::Cpu;
     let vb = VarBuilder::from_gguf(path, &device)?;
     let config_path = path.with_file_name("config-tiny.json");
     let config: Config = serde_json::from_str(&fs::read_to_string(config_path)?)?;
-    let _model = Whisper::load(&vb, config)?;
-    // Full pipeline: mel spectrogram, encoder forward, decoder loop, tokenizer decode.
-    // See: https://github.com/huggingface/candle/tree/main/candle-examples/examples/whisper
-    let _ = samples;
-    Ok("Processed".to_string())
+    let mut model = Whisper::load(&vb, config.clone())?;
+
+    // Load mel filter bank (80 x 201 = 16,080 f32 values, little-endian)
+    let filters_path = path.with_file_name("melfilters.bytes");
+    let filters_bytes = fs::read(&filters_path)
+        .map_err(|e| anyhow::anyhow!("melfilters.bytes not found at {}: {}", filters_path.display(), e))?;
+    let filters: Vec<f32> = filters_bytes
+        .chunks_exact(4)
+        .map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]]))
+        .collect();
+
+    // Pad or truncate audio to 30s (N_SAMPLES = 480,000 at 16kHz)
+    let mut audio = samples.to_vec();
+    if audio.len() > N_SAMPLES {
+        audio.truncate(N_SAMPLES);
+    }
+
+    // Mel spectrogram: audio → [n_mel * n_len] flat vec
+    let mel = pcm_to_mel(&config, &audio, &filters);
+    let n_mel = config.num_mel_bins; // 80
+    let n_len = mel.len() / n_mel;
+    let mel_tensor = Tensor::from_vec(mel, (1, n_mel, n_len), &device)?;
+
+    // Encoder forward
+    let encoder_out = model.encoder.forward(&mel_tensor, true)?;
+
+    // Load tokenizer for decoding + token ID lookup
+    let tokenizer_path = path.with_file_name("tokenizer-tiny.json");
+    let tokenizer = tokenizers::Tokenizer::from_file(&tokenizer_path)
+        .map_err(|e| anyhow::anyhow!("tokenizer-tiny.json: {}", e))?;
+
+    // Resolve special token IDs
+    let sot_id = tokenizer.token_to_id(SOT_TOKEN).unwrap_or(50258);
+    let eot_id = tokenizer.token_to_id(EOT_TOKEN).unwrap_or(50256);
+    let transcribe_id = tokenizer.token_to_id(TRANSCRIBE_TOKEN).unwrap_or(50359);
+    let no_ts_id = tokenizer.token_to_id(NO_TIMESTAMPS_TOKEN).unwrap_or(50363);
+    let en_id = sot_id + 1; // English = SOT + 1 = 50259
+
+    // Decoder loop: autoregressive greedy decoding
+    let mut tokens: Vec<u32> = vec![sot_id, en_id, transcribe_id, no_ts_id];
+    let max_tokens = config.max_target_positions / 2; // 224
+
+    model.decoder.reset_kv_cache();
+    for step in 0..max_tokens {
+        let token_tensor = Tensor::new(tokens.as_slice(), &device)?.unsqueeze(0)?;
+        let dec_out = model.decoder.forward(&token_tensor, &encoder_out, step == 0)?;
+        let logits = model.decoder.final_linear(&dec_out)?;
+
+        // Get logits for the last token position, greedy argmax
+        let last_logits = logits.i((.., tokens.len() - 1, ..))?;
+
+        // Suppress special tokens (> 50256) except EOT to avoid hallucinated tags
+        let vocab_size = last_logits.dim(D::Minus1)?;
+        let suppress_mask: Vec<f32> = (0..vocab_size)
+            .map(|i| {
+                let id = i as u32;
+                if id == eot_id {
+                    0.0
+                } else if id > eot_id {
+                    f32::NEG_INFINITY
+                } else {
+                    0.0
+                }
+            })
+            .collect();
+        let mask_tensor = Tensor::from_vec(suppress_mask, last_logits.shape(), &device)?;
+        let masked = (last_logits + mask_tensor)?;
+
+        let next_id = masked
+            .argmax(D::Minus1)?
+            .squeeze(0)?
+            .to_scalar::<u32>()?;
+
+        if next_id == eot_id {
+            break;
+        }
+        tokens.push(next_id);
+    }
+
+    // Decode tokens to text (skip the 4 prompt tokens)
+    let text_tokens: Vec<u32> = tokens.into_iter().skip(4).collect();
+    let text = tokenizer
+        .decode(&text_tokens, true)
+        .map_err(|e| anyhow::anyhow!("tokenizer decode: {}", e))?;
+
+    let trimmed = text.trim().to_string();
+    if trimmed.is_empty() {
+        Ok("(no speech detected)".to_string())
+    } else {
+        Ok(trimmed)
+    }
 }
 
 /// t124=BehaviorResult. s10=score, s11=note, s12=tags.
