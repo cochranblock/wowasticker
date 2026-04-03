@@ -100,7 +100,7 @@ mod imp {
     }
 
     /// f130=resample_to_16k. Linear interpolate to 16kHz.
-    fn f130(samples: &[f32], from_rate: u32) -> Result<Vec<f32>> {
+    pub(crate) fn f130(samples: &[f32], from_rate: u32) -> Result<Vec<f32>> {
         let from_rate = from_rate as f64;
         let to_rate = TARGET_SAMPLE_RATE as f64;
 
@@ -121,6 +121,60 @@ mod imp {
             out.push(v);
         }
         Ok(out)
+    }
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn resample_same_rate_noop() {
+            let input: Vec<f32> = vec![1.0, 2.0, 3.0];
+            let out = f130(&input, TARGET_SAMPLE_RATE).unwrap();
+            assert_eq!(out, input);
+        }
+
+        #[test]
+        fn resample_downsample_halves() {
+            let input: Vec<f32> = (0..320).map(|i| i as f32 / 320.0).collect();
+            let out = f130(&input, 32000).unwrap();
+            assert_eq!(out.len(), 160);
+        }
+
+        #[test]
+        fn resample_upsample_doubles() {
+            let input: Vec<f32> = (0..80).map(|i| i as f32 / 80.0).collect();
+            let out = f130(&input, 8000).unwrap();
+            assert_eq!(out.len(), 160);
+        }
+
+        #[test]
+        fn resample_empty_input() {
+            let out = f130(&[], 48000).unwrap();
+            assert!(out.is_empty());
+        }
+
+        #[test]
+        fn resample_single_sample() {
+            let out = f130(&[0.5f32], 48000).unwrap();
+            assert!(out.is_empty());
+        }
+
+        #[test]
+        fn resample_44100_to_16000() {
+            let n = 44100;
+            let input: Vec<f32> = (0..n).map(|i| (i as f32 / n as f32).sin()).collect();
+            let out = f130(&input, 44100).unwrap();
+            assert_eq!(out.len(), 16000);
+        }
+
+        #[test]
+        fn resample_preserves_dc_signal() {
+            let input = vec![0.75f32; 4800];
+            let out = f130(&input, 48000).unwrap();
+            for v in &out {
+                assert!((*v - 0.75f32).abs() < 1e-5);
+            }
+        }
     }
 }
 

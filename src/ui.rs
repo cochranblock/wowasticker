@@ -430,6 +430,75 @@ fn ScheduleCard(
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sticker_str_all_values() {
+        assert_eq!(sticker_str(t119::Zero), "○");
+        assert_eq!(sticker_str(t119::One), "●");
+        assert_eq!(sticker_str(t119::Two), "●●");
+    }
+
+    #[test]
+    fn today_str_format() {
+        let s = today_str();
+        // YYYY-MM-DD
+        assert_eq!(s.len(), 10);
+        assert_eq!(s.as_bytes()[4], b'-');
+        assert_eq!(s.as_bytes()[7], b'-');
+    }
+
+    #[test]
+    fn format_date_display_today() {
+        assert_eq!(format_date_display(&today_str()), "Today");
+    }
+
+    #[test]
+    fn format_date_display_other_date() {
+        let s = format_date_display("2026-03-27");
+        // Should be "Fri, Mar 27" or similar
+        assert!(s.contains("Mar"));
+        assert!(s.contains("27"));
+    }
+
+    #[test]
+    fn format_date_display_invalid_date() {
+        assert_eq!(format_date_display("not-a-date"), "not-a-date");
+    }
+
+    #[test]
+    fn shift_date_forward() {
+        assert_eq!(shift_date("2026-03-27", 1), "2026-03-28");
+    }
+
+    #[test]
+    fn shift_date_backward() {
+        assert_eq!(shift_date("2026-03-01", -1), "2026-02-28");
+    }
+
+    #[test]
+    fn shift_date_across_month_boundary() {
+        assert_eq!(shift_date("2026-01-31", 1), "2026-02-01");
+    }
+
+    #[test]
+    fn shift_date_across_year_boundary() {
+        assert_eq!(shift_date("2025-12-31", 1), "2026-01-01");
+    }
+
+    #[test]
+    fn shift_date_invalid() {
+        assert_eq!(shift_date("bad", 1), "bad");
+    }
+
+    #[test]
+    fn shift_date_zero() {
+        assert_eq!(shift_date("2026-04-01", 0), "2026-04-01");
+    }
+}
+
 /// f132=f132. capture_audio → transcribe → extract_behavior → set_sticker_today_with_note.
 async fn f132(
     db: Option<Arc<t123>>,

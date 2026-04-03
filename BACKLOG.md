@@ -10,26 +10,25 @@ Last triaged: 2026-04-03
 
 ---
 
-1. `[fix]` Wire Whisper inference in f137 — mel spectrogram, encoder, decoder, tokenizer. Core differentiator is a stub (`let _ = samples`). Dep: candle 0.8 whisper example.
-2. `[fix]` Fix Dioxus desktop build — wry API mismatch (`open_devtools`/`close_devtools` removed). Switch `features = ["mobile"]` to `["desktop"]` or add feature split. Do NOT upgrade to Dioxus 0.6.
-3. `[feature]` Settings screen — add `view_mode` signal (Main/Settings) to ui.rs. Student name, goal count, block add/rename/delete.
-4. `[feature]` DB CRUD for settings — `update_student`, `add_block`, `delete_block`, `rename_block` in db.rs. Tests for each.
-5. `[feature]` First-run onboarding — if no student exists, show setup screen. Replace hardcoded "Luka" default.
-6. `[fix]` Schema: add `student_id` to `sticker_records` — current PK is `(block_id, date)` with no student association. Multi-student broken at schema level.
-7. `[feature]` Multi-student UI — student selector (chips or dropdown), wire to filtered queries. Dep: item 6.
-8. `[fix]` IRONHIVE node lf DNS — intermittent `github.com` resolution failures. Blocks `cargo clippy` (exopack git dep). Dep: exopack (cochranblock/exopack).
-9. `[fix]` IRONHIVE node st DNS — same github.com resolution failure as lf. Blocks TRIPLE SIMS on st.
-10. `[build]` IRONHIVE CI — automate `cargo test --no-default-features` on push across lf/gd/st. Dep: items 8-9 (DNS fix).
-11. `[test]` Whisper integration test — gated on `WOWASTICKER_WHISPER_PATH` env var. Download model to one IRONHIVE node, test against known audio. Dep: item 1.
-12. `[fix]` Clipboard silent failure — ui.rs `navigator.clipboard.writeText()` has empty `.catch()`. Surface error to user.
-13. `[fix]` Missing Whisper model silent degradation — f119 returns "Processed" with no warning. Add status message when model not found.
-14. `[feature]` Export daily report — PDF or CSV, not just clipboard. Teacher needs printable artifact.
-15. `[feature]` Weekly/monthly progress trends — teachers need progress over time, not just daily view.
-16. `[docs]` Add P23 protocol reference to project docs. Blocked: need P23 definition from kova protocols.
-17. `[build]` Pull Linux x86_64 release binary from gd — built at `gd:~/wowasticker/target/release/wowasticker-cli` (1.5 MB). Add to GitHub Release.
-18. `[test]` Accessibility audit — no ARIA labels, no keyboard nav, no screen reader testing. See govdocs/ACCESSIBILITY.md gap list.
-19. `[research]` Dioxus 0.6 migration scope — breaking RSX/hooks changes. Estimate LOC impact on ui.rs (475 lines). Do not execute yet.
-20. `[fix]` IRONHIVE node bt offline — SSH timeout. Diagnose: power? network? disk?
+1. `[fix]` Fix Dioxus desktop build — wry API mismatch (`open_devtools`/`close_devtools` removed). Switch `features = ["mobile"]` to `["desktop"]` or add feature split. Do NOT upgrade to Dioxus 0.6.
+2. `[feature]` Settings screen — add `view_mode` signal (Main/Settings) to ui.rs. Student name, goal count, block add/rename/delete.
+3. `[feature]` DB CRUD for settings — `update_student`, `add_block`, `delete_block`, `rename_block` in db.rs. Tests for each. **DONE** — f152-f155 implemented and tested.
+4. `[feature]` First-run onboarding — if no student exists, show setup screen. Replace hardcoded "Luka" default.
+5. `[fix]` Schema: add `student_id` to `sticker_records` — current PK is `(block_id, date)` with no student association. Multi-student broken at schema level.
+6. `[feature]` Multi-student UI — student selector (chips or dropdown), wire to filtered queries. Dep: item 5.
+7. `[fix]` IRONHIVE node lf DNS — intermittent `github.com` resolution failures. Blocks `cargo clippy` (exopack git dep). Dep: exopack (cochranblock/exopack).
+8. `[fix]` IRONHIVE node st DNS — same github.com resolution failure as lf. Blocks TRIPLE SIMS on st.
+9. `[build]` IRONHIVE CI — automate `cargo test --no-default-features` on push across lf/gd/st. Dep: items 7-8 (DNS fix).
+10. `[test]` Whisper integration test — gated on `WOWASTICKER_WHISPER_PATH` env var. Download model to one IRONHIVE node, test against known audio.
+11. `[fix]` Clipboard silent failure — ui.rs `navigator.clipboard.writeText()` has empty `.catch()`. Surface error to user.
+12. `[fix]` Missing Whisper model silent degradation — f119 returns "Processed" with no warning. Add status message when model not found.
+13. `[feature]` Export daily report — PDF or CSV, not just clipboard. Teacher needs printable artifact.
+14. `[feature]` Weekly/monthly progress trends — teachers need progress over time, not just daily view.
+15. `[docs]` Add P23 protocol reference to project docs. Blocked: need P23 definition from kova protocols.
+16. `[build]` Pull Linux x86_64 release binary from gd — built at `gd:~/wowasticker/target/release/wowasticker-cli` (1.5 MB). Add to GitHub Release.
+17. `[test]` Accessibility audit — no ARIA labels, no keyboard nav, no screen reader testing. See govdocs/ACCESSIBILITY.md gap list.
+18. `[research]` Dioxus 0.6 migration scope — breaking RSX/hooks changes. Estimate LOC impact on ui.rs (475 lines). Do not execute yet.
+19. `[fix]` IRONHIVE node bt offline — SSH timeout. Diagnose: power? network? disk?
 
 ## Cross-Project Dependencies
 

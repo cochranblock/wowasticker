@@ -351,4 +351,131 @@ mod tests {
         let text = super::f119(path, &samples).await.unwrap();
         assert_eq!(text, "Processed");
     }
+
+    #[tokio::test]
+    async fn transcribe_audio_empty_samples() {
+        let path = std::path::Path::new("/nonexistent/whisper.gguf");
+        let samples: Vec<f32> = vec![];
+        let text = super::f119(path, &samples).await.unwrap();
+        assert_eq!(text, "Processed");
+    }
+
+    // ===== f134 edge cases =====
+
+    #[test]
+    fn f134_empty_input() {
+        let r = f134("");
+        assert_eq!(r.s10, t119::Zero);
+        assert_eq!(r.s11, "");
+        assert!(r.s12.is_empty());
+    }
+
+    #[test]
+    fn f134_mixed_case_great() {
+        assert_eq!(f120("GREAT job"), t119::Two);
+        assert_eq!(f120("GrEaT work"), t119::Two);
+        assert_eq!(f120("EXCELLENT"), t119::Two);
+    }
+
+    #[test]
+    fn f134_unicode_text() {
+        let r = f134("Très bien! 👍 Great");
+        assert_eq!(r.s10, t119::Two);
+        assert_eq!(r.s11, "Très bien! 👍 Great");
+        assert!(r.s12.contains(&"positive".to_string()));
+    }
+
+    #[test]
+    fn f134_very_long_text() {
+        let long = "great ".repeat(5000);
+        let r = f134(&long);
+        assert_eq!(r.s10, t119::Two);
+    }
+
+    #[test]
+    fn f134_numbers_only() {
+        let r = f134("12345 67890");
+        assert_eq!(r.s10, t119::Zero);
+        assert!(r.s12.is_empty());
+    }
+
+    #[test]
+    fn f134_whitespace_only() {
+        let r = f134("   \t\n  ");
+        assert_eq!(r.s10, t119::Zero);
+    }
+
+    #[test]
+    fn f134_conflicting_keywords_first_wins() {
+        // "great" matches first → Two, even though "refusal" is also present
+        let r = f134("great but also refusal");
+        assert_eq!(r.s10, t119::Two); // "great" checked first in f120
+    }
+
+    // ===== f138 tag extraction edge cases =====
+
+    #[test]
+    fn f138_empty_returns_no_tags() {
+        let r = f134("");
+        assert!(r.s12.is_empty());
+    }
+
+    #[test]
+    fn f138_tag_in_middle_of_word() {
+        // "unfinished" contains "finish"
+        let r = f134("unfinished business");
+        assert!(r.s12.contains(&"finish_work".to_string()));
+    }
+
+    #[test]
+    fn f138_all_tags_at_once() {
+        let r = f134("elopement refusal combative stay in finish great excellent");
+        assert!(r.s12.contains(&"elopement".to_string()));
+        assert!(r.s12.contains(&"refusal".to_string()));
+        assert!(r.s12.contains(&"combative".to_string()));
+        assert!(r.s12.contains(&"stay_in_space".to_string()));
+        assert!(r.s12.contains(&"finish_work".to_string()));
+        assert!(r.s12.contains(&"positive".to_string()));
+        assert_eq!(r.s12.len(), 7); // "great" and "excellent" both → "positive"
+    }
+
+    #[test]
+    fn f138_case_insensitive() {
+        let r = f134("ELOPEMENT REFUSAL COMBATIVE");
+        assert!(r.s12.contains(&"elopement".to_string()));
+        assert!(r.s12.contains(&"refusal".to_string()));
+        assert!(r.s12.contains(&"combative".to_string()));
+    }
+
+    #[test]
+    fn f138_partial_match_not_exact() {
+        // "refus" is the pattern, so "refused" should match
+        let r = f134("She refused to participate");
+        assert!(r.s12.contains(&"refusal".to_string()));
+    }
+
+    // ===== f120 additional keyword coverage =====
+
+    #[test]
+    fn parse_sticker_okay_returns_one() {
+        assert_eq!(f120("It was okay"), t119::One);
+    }
+
+    #[test]
+    fn parse_sticker_multiple_keywords_first_match_wins() {
+        // "great" is checked before "good", so result is Two
+        assert_eq!(f120("great and good"), t119::Two);
+    }
+
+    #[test]
+    fn parse_sticker_keyword_in_sentence() {
+        assert_eq!(f120("He showed excellent behavior during the activity"), t119::Two);
+    }
+
+    #[test]
+    fn parse_sticker_punctuation_around_keyword() {
+        assert_eq!(f120("great!"), t119::Two);
+        assert_eq!(f120("(good)"), t119::One);
+        assert_eq!(f120("'refusal'"), t119::Zero);
+    }
 }

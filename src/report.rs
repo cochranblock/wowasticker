@@ -146,6 +146,116 @@ mod tests {
         assert!(report.contains("Goal met!"));
     }
 
+    /// f147=generate_daily_report no blocks at all
+    #[test]
+    fn generate_daily_report_no_blocks() {
+        let student = t122 {
+            s6: 1,
+            s7: "Luka".to_string(),
+            s8: 10,
+        };
+        let report = f147(&student, "2026-03-27", &[], 0);
+        assert!(report.contains("Luka's Sticker Report"));
+        assert!(report.contains("0 / 10 stickers"));
+        assert!(!report.contains("Goal met!"));
+    }
+
+    /// f147=generate_daily_report note with special characters
+    #[test]
+    fn generate_daily_report_special_chars_in_note() {
+        let student = t122 {
+            s6: 1,
+            s7: "Luka".to_string(),
+            s8: 10,
+        };
+        let blocks = vec![(
+            t120 {
+                s0: 1,
+                s1: "Math".to_string(),
+                s2: 0,
+            },
+            Some(t121 {
+                s3: 1,
+                s4: "2026-03-27".to_string(),
+                s5: t119::Two,
+                s9: Some("Said \"hello\" & <goodbye>".to_string()),
+            }),
+        )];
+        let report = f147(&student, "2026-03-27", &blocks, 2);
+        assert!(report.contains("Said \"hello\" & <goodbye>"));
+    }
+
+    /// f147=generate_daily_report unicode student name
+    #[test]
+    fn generate_daily_report_unicode_name() {
+        let student = t122 {
+            s6: 1,
+            s7: "José García".to_string(),
+            s8: 5,
+        };
+        let report = f147(&student, "2026-03-27", &[], 0);
+        assert!(report.contains("José García's Sticker Report"));
+    }
+
+    /// f147=generate_daily_report exactly at goal boundary
+    #[test]
+    fn generate_daily_report_at_goal_boundary() {
+        let student = t122 {
+            s6: 1,
+            s7: "Luka".to_string(),
+            s8: 2,
+        };
+        // earned == goal → "Goal met!"
+        let report = f147(&student, "2026-03-27", &[], 2);
+        assert!(report.contains("Goal met!"));
+        // earned = goal - 1 → no "Goal met!"
+        let report2 = f147(&student, "2026-03-27", &[], 1);
+        assert!(!report2.contains("Goal met!"));
+    }
+
+    /// f147=generate_daily_report empty note is not printed
+    #[test]
+    fn generate_daily_report_empty_note_not_shown() {
+        let student = t122 {
+            s6: 1,
+            s7: "Luka".to_string(),
+            s8: 10,
+        };
+        let blocks = vec![(
+            t120 {
+                s0: 1,
+                s1: "Math".to_string(),
+                s2: 0,
+            },
+            Some(t121 {
+                s3: 1,
+                s4: "2026-03-27".to_string(),
+                s5: t119::One,
+                s9: Some("".to_string()),
+            }),
+        )];
+        let report = f147(&student, "2026-03-27", &blocks, 1);
+        // "Good" line should NOT have a trailing ": "
+        assert!(report.contains("● Math — Good"));
+        assert!(!report.contains("Good: "));
+    }
+
+    // ===== sticker_label / sticker_emoji coverage =====
+
+    #[test]
+    fn sticker_label_all_values() {
+        assert_eq!(sticker_label(t119::Zero), "Needs work");
+        assert_eq!(sticker_label(t119::One), "Good");
+        assert_eq!(sticker_label(t119::Two), "Great");
+    }
+
+    #[test]
+    fn sticker_emoji_all_values() {
+        assert_eq!(sticker_emoji(t119::Zero), "○");
+        assert_eq!(sticker_emoji(t119::One), "●");
+        assert_eq!(sticker_emoji(t119::Two), "●●");
+    }
+
     /// f147=generate_daily_report empty day
     #[test]
     fn generate_daily_report_empty_day() {

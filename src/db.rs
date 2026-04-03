@@ -633,7 +633,445 @@ mod tests {
         assert!(db.f155(id).unwrap());
         let remaining = db.f124().unwrap();
         assert_eq!(remaining.len(), blocks.len() - 1);
-        // sticker records for deleted block should also be gone
         assert_eq!(db.f125(id, "2026-04-01").unwrap(), t119::Zero);
+    }
+
+    // ===== EDGE CASES: db_open =====
+
+    #[test]
+    fn db_open_invalid_path() {
+        let result = t123::f121("/nonexistent/deeply/nested/path/db.sqlite");
+        assert!(result.is_err());
+    }
+
+    // ===== EDGE CASES: sticker values =====
+
+    #[test]
+    fn db_sticker_overwrite_updates_value() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        let id = blocks[0].s0;
+        db.f126(id, "2026-04-01", t119::One).unwrap();
+        assert_eq!(db.f125(id, "2026-04-01").unwrap(), t119::One);
+        db.f126(id, "2026-04-01", t119::Two).unwrap();
+        assert_eq!(db.f125(id, "2026-04-01").unwrap(), t119::Two);
+    }
+
+    #[test]
+    fn db_sticker_multiple_blocks_same_date() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        let date = "2026-04-01";
+        db.f126(blocks[0].s0, date, t119::Two).unwrap();
+        db.f126(blocks[1].s0, date, t119::One).unwrap();
+        db.f126(blocks[2].s0, date, t119::Two).unwrap();
+        assert_eq!(db.f145(date).unwrap(), 5); // 2+1+2
+    }
+
+    #[test]
+    fn db_sticker_same_block_different_dates() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        let id = blocks[0].s0;
+        db.f126(id, "2026-04-01", t119::Two).unwrap();
+        db.f126(id, "2026-04-02", t119::One).unwrap();
+        assert_eq!(db.f125(id, "2026-04-01").unwrap(), t119::Two);
+        assert_eq!(db.f125(id, "2026-04-02").unwrap(), t119::One);
+        assert_eq!(db.f145("2026-04-01").unwrap(), 2);
+        assert_eq!(db.f145("2026-04-02").unwrap(), 1);
+    }
+
+    #[test]
+    fn db_get_sticker_negative_block_id() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        assert_eq!(db.f125(-1, "2026-04-01").unwrap(), t119::Zero);
+    }
+
+    #[test]
+    fn db_count_stickers_empty_date() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        assert_eq!(db.f145("2099-01-01").unwrap(), 0);
+    }
+
+    // ===== EDGE CASES: notes =====
+
+    #[test]
+    fn db_note_empty_string() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        db.f136(blocks[0].s0, "2026-04-01", t119::Two, Some("")).unwrap();
+        let rec = db.f143(blocks[0].s0, "2026-04-01").unwrap().unwrap();
+        assert_eq!(rec.s9, Some("".to_string()));
+    }
+
+    #[test]
+    fn db_note_sql_injection() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        let malicious = "'; DROP TABLE sticker_records; --";
+        db.f136(blocks[0].s0, "2026-04-01", t119::One, Some(malicious)).unwrap();
+        let rec = db.f143(blocks[0].s0, "2026-04-01").unwrap().unwrap();
+        assert_eq!(rec.s9.as_deref(), Some(malicious));
+        // table must still work
+        assert!(db.f124().is_ok());
+    }
+
+    #[test]
+    fn db_note_with_quotes() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        let note = r#"Said "Hello" and 'goodbye'"#;
+        db.f136(blocks[0].s0, "2026-04-01", t119::Two, Some(note)).unwrap();
+        let rec = db.f143(blocks[0].s0, "2026-04-01").unwrap().unwrap();
+        assert_eq!(rec.s9.as_deref(), Some(note));
+    }
+
+    #[test]
+    fn db_note_with_newlines() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        let note = "Line 1\nLine 2\nLine 3";
+        db.f136(blocks[0].s0, "2026-04-01", t119::One, Some(note)).unwrap();
+        let rec = db.f143(blocks[0].s0, "2026-04-01").unwrap().unwrap();
+        assert_eq!(rec.s9.as_deref(), Some(note));
+    }
+
+    #[test]
+    fn db_note_with_unicode() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        let note = "Très bien! 👍 Excelente trabajo 🌟";
+        db.f136(blocks[0].s0, "2026-04-01", t119::Two, Some(note)).unwrap();
+        let rec = db.f143(blocks[0].s0, "2026-04-01").unwrap().unwrap();
+        assert_eq!(rec.s9.as_deref(), Some(note));
+    }
+
+    #[test]
+    fn db_note_very_long() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        let long_note = "x".repeat(10_000);
+        db.f136(blocks[0].s0, "2026-04-01", t119::Two, Some(&long_note)).unwrap();
+        let rec = db.f143(blocks[0].s0, "2026-04-01").unwrap().unwrap();
+        assert_eq!(rec.s9.as_deref(), Some(long_note.as_str()));
+    }
+
+    #[test]
+    fn db_note_overwrite_replaces_note() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        let id = blocks[0].s0;
+        db.f136(id, "2026-04-01", t119::One, Some("first")).unwrap();
+        db.f136(id, "2026-04-01", t119::Two, Some("second")).unwrap();
+        let rec = db.f143(id, "2026-04-01").unwrap().unwrap();
+        assert_eq!(rec.s5, t119::Two);
+        assert_eq!(rec.s9.as_deref(), Some("second"));
+    }
+
+    #[test]
+    fn db_note_none_clears_note() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        let id = blocks[0].s0;
+        db.f136(id, "2026-04-01", t119::Two, Some("a note")).unwrap();
+        db.f136(id, "2026-04-01", t119::Two, None).unwrap();
+        let rec = db.f143(id, "2026-04-01").unwrap().unwrap();
+        assert_eq!(rec.s9, None);
+    }
+
+    // ===== EDGE CASES: student =====
+
+    #[test]
+    fn db_update_student_empty_name() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f140().unwrap();
+        let s = db.f141().unwrap().unwrap();
+        db.f152(s.s6, "", 15).unwrap();
+        let s2 = db.f141().unwrap().unwrap();
+        assert_eq!(s2.s7, "");
+    }
+
+    #[test]
+    fn db_update_student_zero_goal() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f140().unwrap();
+        let s = db.f141().unwrap().unwrap();
+        db.f152(s.s6, "Test", 0).unwrap();
+        assert_eq!(db.f141().unwrap().unwrap().s8, 0);
+    }
+
+    #[test]
+    fn db_update_student_negative_goal() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f140().unwrap();
+        let s = db.f141().unwrap().unwrap();
+        db.f152(s.s6, "Test", -5).unwrap();
+        assert_eq!(db.f141().unwrap().unwrap().s8, -5);
+    }
+
+    #[test]
+    fn db_update_student_max_goal() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f140().unwrap();
+        let s = db.f141().unwrap().unwrap();
+        db.f152(s.s6, "Test", i32::MAX).unwrap();
+        assert_eq!(db.f141().unwrap().unwrap().s8, i32::MAX);
+    }
+
+    #[test]
+    fn db_update_student_nonexistent_id() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f152(999, "Ghost", 20).unwrap(); // no error, no student created
+        assert!(db.f141().unwrap().is_none());
+    }
+
+    #[test]
+    fn db_update_student_unicode_name() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f140().unwrap();
+        let s = db.f141().unwrap().unwrap();
+        db.f152(s.s6, "José García-López", 10).unwrap();
+        assert_eq!(db.f141().unwrap().unwrap().s7, "José García-López");
+    }
+
+    // ===== EDGE CASES: blocks =====
+
+    #[test]
+    fn db_add_block_empty_name() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        let id = db.f153("").unwrap();
+        assert!(id > 0);
+        let blocks = db.f124().unwrap();
+        assert_eq!(blocks[0].s1, "");
+    }
+
+    #[test]
+    fn db_add_block_sql_injection() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        let name = "Block'; DROP TABLE schedule_blocks;--";
+        db.f153(name).unwrap();
+        let blocks = db.f124().unwrap();
+        assert_eq!(blocks[0].s1, name);
+        assert!(db.f124().is_ok());
+    }
+
+    #[test]
+    fn db_add_block_unicode() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        let name = "Classe de Français 🎓";
+        db.f153(name).unwrap();
+        let blocks = db.f124().unwrap();
+        assert_eq!(blocks[0].s1, name);
+    }
+
+    #[test]
+    fn db_add_block_very_long_name() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        let name = "x".repeat(10_000);
+        db.f153(&name).unwrap();
+        let blocks = db.f124().unwrap();
+        assert_eq!(blocks[0].s1, name);
+    }
+
+    #[test]
+    fn db_add_multiple_blocks_sort_order() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f153("A").unwrap();
+        db.f153("B").unwrap();
+        db.f153("C").unwrap();
+        let blocks = db.f124().unwrap();
+        assert_eq!(blocks.len(), 3);
+        assert!(blocks[0].s2 < blocks[1].s2);
+        assert!(blocks[1].s2 < blocks[2].s2);
+    }
+
+    #[test]
+    fn db_rename_block_to_empty() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        db.f154(blocks[0].s0, "").unwrap();
+        assert_eq!(db.f124().unwrap()[0].s1, "");
+    }
+
+    #[test]
+    fn db_rename_nonexistent_block() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f154(999, "NewName").unwrap(); // no error
+    }
+
+    #[test]
+    fn db_delete_nonexistent_block() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        assert!(!db.f155(999).unwrap());
+    }
+
+    #[test]
+    fn db_delete_block_with_many_records() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        let id = blocks[0].s0;
+        for day in 1..=30 {
+            let date = format!("2026-04-{:02}", day);
+            db.f126(id, &date, t119::Two).unwrap();
+        }
+        assert!(db.f155(id).unwrap());
+        for day in 1..=30 {
+            let date = format!("2026-04-{:02}", day);
+            assert_eq!(db.f125(id, &date).unwrap(), t119::Zero);
+        }
+    }
+
+    // ===== EDGE CASES: list_day_records =====
+
+    #[test]
+    fn db_list_day_records_no_blocks() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        // no default schedule
+        let records = db.f144("2026-04-01").unwrap();
+        assert!(records.is_empty());
+    }
+
+    #[test]
+    fn db_list_day_records_all_empty() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let records = db.f144("2026-04-01").unwrap();
+        assert_eq!(records.len(), 5);
+        for (_, rec) in &records {
+            assert!(rec.is_none());
+        }
+    }
+
+    #[test]
+    fn db_list_day_records_mixed() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        db.f126(blocks[0].s0, "2026-04-01", t119::Two).unwrap();
+        db.f136(blocks[2].s0, "2026-04-01", t119::One, Some("ok")).unwrap();
+        let records = db.f144("2026-04-01").unwrap();
+        assert!(records[0].1.is_some());
+        assert!(records[1].1.is_none());
+        assert!(records[2].1.is_some());
+        assert!(records[3].1.is_none());
+        assert!(records[4].1.is_none());
+    }
+
+    // ===== EDGE CASES: sort_order =====
+
+    #[test]
+    fn db_blocks_maintain_sort_order() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        for i in 0..blocks.len() - 1 {
+            assert!(blocks[i].s2 <= blocks[i + 1].s2);
+        }
+    }
+
+    // ===== EDGE CASES: record retrieval =====
+
+    #[test]
+    fn db_get_record_nonexistent_block() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        let rec = db.f143(999, "2026-04-01").unwrap();
+        assert!(rec.is_none());
+    }
+
+    #[test]
+    fn db_get_record_preserves_all_fields() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        let id = blocks[0].s0;
+        let date = "2026-04-01";
+        db.f136(id, date, t119::Two, Some("Great work")).unwrap();
+        let rec = db.f143(id, date).unwrap().unwrap();
+        assert_eq!(rec.s3, id);
+        assert_eq!(rec.s4, date);
+        assert_eq!(rec.s5, t119::Two);
+        assert_eq!(rec.s9, Some("Great work".to_string()));
     }
 }
