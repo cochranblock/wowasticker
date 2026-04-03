@@ -296,6 +296,57 @@ impl t123 {
         Ok(total)
     }
 
+    /// f152=update_student. Update name and/or goal for a student.
+    pub fn f152(&self, id: i64, name: &str, goal: i32) -> Result<()> {
+        let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
+        conn.execute(
+            "UPDATE students SET name = ?1, goal_stickers = ?2 WHERE id = ?3",
+            params![name, goal, id],
+        )?;
+        Ok(())
+    }
+
+    /// f153=add_block. Insert a new schedule block. Returns its id.
+    pub fn f153(&self, name: &str) -> Result<i64> {
+        let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
+        let max_order: i32 = conn
+            .query_row(
+                "SELECT COALESCE(MAX(sort_order), -1) FROM schedule_blocks",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap_or(-1);
+        conn.execute(
+            "INSERT INTO schedule_blocks (name, sort_order) VALUES (?1, ?2)",
+            params![name, max_order + 1],
+        )?;
+        Ok(conn.last_insert_rowid())
+    }
+
+    /// f154=rename_block. Rename a schedule block.
+    pub fn f154(&self, id: i64, name: &str) -> Result<()> {
+        let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
+        conn.execute(
+            "UPDATE schedule_blocks SET name = ?1 WHERE id = ?2",
+            params![name, id],
+        )?;
+        Ok(())
+    }
+
+    /// f155=delete_block. Remove a schedule block and its sticker records.
+    pub fn f155(&self, id: i64) -> Result<bool> {
+        let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
+        conn.execute(
+            "DELETE FROM sticker_records WHERE block_id = ?1",
+            params![id],
+        )?;
+        let deleted = conn.execute(
+            "DELETE FROM schedule_blocks WHERE id = ?1",
+            params![id],
+        )?;
+        Ok(deleted > 0)
+    }
+
     /// f146=delete_sticker. Remove a sticker record for block on date (undo).
     pub fn f146(&self, block_id: i64, date: &str) -> Result<bool> {
         let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
@@ -523,5 +574,66 @@ mod tests {
         db.f123().unwrap();
         let blocks = db.f124().unwrap();
         assert!(!db.f146(blocks[0].s0, "2026-01-01").unwrap());
+    }
+
+    /// f152=update_student changes name and goal
+    #[test]
+    fn db_update_student() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f140().unwrap();
+        let s = db.f141().unwrap().unwrap();
+        assert_eq!(s.s7, "Luka");
+        assert_eq!(s.s8, 15);
+        db.f152(s.s6, "Maya", 20).unwrap();
+        let s2 = db.f141().unwrap().unwrap();
+        assert_eq!(s2.s7, "Maya");
+        assert_eq!(s2.s8, 20);
+    }
+
+    /// f153=add_block inserts with auto sort_order
+    #[test]
+    fn db_add_block() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let before = db.f124().unwrap().len();
+        let id = db.f153("Science").unwrap();
+        assert!(id > 0);
+        let after = db.f124().unwrap();
+        assert_eq!(after.len(), before + 1);
+        assert_eq!(after.last().unwrap().s1, "Science");
+    }
+
+    /// f154=rename_block changes name
+    #[test]
+    fn db_rename_block() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        db.f154(blocks[0].s0, "Art Class").unwrap();
+        let updated = db.f124().unwrap();
+        assert_eq!(updated[0].s1, "Art Class");
+    }
+
+    /// f155=delete_block removes block and its sticker records
+    #[test]
+    fn db_delete_block() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        let id = blocks[0].s0;
+        db.f126(id, "2026-04-01", t119::Two).unwrap();
+        assert!(db.f155(id).unwrap());
+        let remaining = db.f124().unwrap();
+        assert_eq!(remaining.len(), blocks.len() - 1);
+        // sticker records for deleted block should also be gone
+        assert_eq!(db.f125(id, "2026-04-01").unwrap(), t119::Zero);
     }
 }
