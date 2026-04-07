@@ -30,17 +30,17 @@ flowchart TD
 
 | Metric | Value |
 |--------|-------|
-| Lines of Rust | 2,106 across 11 files (9 modules + 2 binaries) |
+| Lines of Rust | 3,528 across 11 files (9 modules + 2 binaries) |
 | AI model | Whisper-Tiny GGUF (on-device, no cloud) |
 | UI framework | Dioxus 0.5 (pure Rust, mobile-native) |
 | Audio | cpal (cross-platform mic capture) |
 | Storage | rusqlite (bundled SQLite, zero external deps) |
-| Unit tests | 40 (parser heuristics, DB operations, student CRUD, sticker records, daily report, undo, behavior tags, audio stubs) |
+| Unit tests | 122 (parser heuristics, DB operations, student CRUD, sticker records, daily report, undo, behavior tags, audio stubs, CLI integration, UI helpers) |
 | Quality gate | TRIPLE SIMS via exopack (3-pass determinism) |
 | Schedule blocks | 5 (Cultural Arts, Community Circle, Math, Recess, Lunch) |
 | Sticker values | 3-tier: 0 (concern), 1 (good), 2 (great) |
 | Behavior tags | 6 (elopement, refusal, combative, stay_in_space, finish_work, positive) |
-| Compressed symbols | 29 functions (f119-f147), 7 types (t119-t125), 18 fields (s0-s17) |
+| Compressed symbols | 40 functions (f119-f158), 7 types (t119-t125), 18 fields (s0-s17) |
 | Dependencies (lib) | 6 (anyhow, chrono, rusqlite, serde, serde_json, tokio) |
 | Federal compliance docs | 11 (govdocs/) |
 | Platform targets | 12 (macOS ARM/Intel, Linux x86/ARM64/ARM32, Windows, FreeBSD, RISC-V, POWER, Android, iOS, WASM) |
@@ -63,13 +63,13 @@ Release profile: `opt-level = 'z'`, LTO, `codegen-units = 1`, `panic = 'abort'`,
 - `cargo build --release`: PASS (0 errors, 0 warnings)
 - `cargo clippy --release -- -D warnings`: PASS
 - `cargo clippy -- -W dead-code -W unused-imports`: PASS
-- TRIPLE SIMS (3x cargo test): PASS (40 tests x 3 = 120 runs)
+- TRIPLE SIMS (3x cargo test): PASS (122 tests x 3 = 366 runs)
 - Code cleanliness: zero TODOs, zero debug prints, zero AI slop words
 
 **QA Round 2 (post-P13 tokenization):**
 - `cargo clean && cargo build --release`: PASS
 - `cargo clippy --release -- -D warnings`: PASS
-- TRIPLE SIMS: PASS (40 x 3 = 120 runs)
+- TRIPLE SIMS: PASS (122 x 3 = 366 runs)
 - `cargo check` with all features (dioxus+candle+audio): PASS
 - `git status`: clean
 
@@ -78,7 +78,7 @@ Release profile: `opt-level = 'z'`, LTO, `codegen-units = 1`, `panic = 'abort'`,
 | Artifact | Description |
 |----------|-------------|
 | Tap-to-Score | Manual sticker entry: tap 0/1/2 on any selected card. Works without voice pipeline |
-| On-Device Whisper | Candle Whisper-Tiny GGUF — model loads on-device. Inference pipeline scaffolded (not yet wired). No API calls, no privacy leaks |
+| On-Device Whisper | Candle Whisper-Tiny GGUF — model loads on-device. Full inference pipeline wired: mel spectrogram → encoder → decoder → tokenizer. No API calls, no privacy leaks |
 | Heuristic Parser | great/excellent → 2 stickers, good/ok → 1 sticker, refusal/elopement → 0. Works even if Whisper fails |
 | Thumb-Zone UI | All controls in bottom half of screen for one-handed use. Safe-area insets respect notches |
 | Behavioral Tags | Auto-extracted from transcription: elopement, refusal, combative, finish_work, positive |
@@ -114,7 +114,7 @@ Rust 1.94.x bootstrapped on all 3 nodes. TRIPLE SIMS verified on gd.
 
 ```bash
 cargo build --release -p wowasticker --no-default-features
-cargo test -p wowasticker --no-default-features           # 40 tests
+cargo test -p wowasticker --no-default-features           # 122 tests
 cargo run -p wowasticker --bin wowasticker-test --features tests  # TRIPLE SIMS
 ```
 

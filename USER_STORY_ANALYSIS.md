@@ -16,7 +16,7 @@ The architecture diagram is developer-facing (module names, data flow arrows). N
 
 ## 2. INSTALLATION
 
-**Lib-only build (`--no-default-features`): PASS.** Compiles clean. 40 tests pass.
+**Lib-only build (`--no-default-features`): PASS.** Compiles clean. 122 tests pass.
 
 **Full Dioxus build:** Fails with `dioxus-desktop` 0.5.6 calling `open_devtools`/`close_devtools` on `wry` which no longer exposes those methods. `panic = 'abort'` in release profile also conflicts with Dioxus's catch-unwind patterns. No `Cargo.lock` checked in to pin working versions.
 
@@ -69,7 +69,7 @@ Useful if it worked. But since transcription always returns "Processed" and scor
 1. **Multi-student support.** Every teacher has 20+ students.
 2. **Customizable schedule blocks.** Every school has different periods.
 3. **Manual sticker entry.** Tap-to-score without 10s dictation.
-4. **Working speech-to-text.** Core feature is scaffolded, not implemented.
+4. **Working speech-to-text.** Whisper inference wired end-to-end (mel → encoder → decoder → tokenizer). Not yet tested on real device audio.
 5. **Settings screen.** Student name, goal count, block CRUD.
 6. **Export/print reports.** PDF, email, not just clipboard.
 7. **Onboarding flow.** First-time setup for student name and schedule.

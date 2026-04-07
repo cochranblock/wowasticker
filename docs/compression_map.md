@@ -41,6 +41,13 @@ P13 tokenization for traceability. All public symbols use compressed identifiers
 | f149 | MainActivity | android (Java) |
 | f150 | JNI bridge | jni |
 | f151 | WASM bridge | wasm |
+| f152 | update_student | db |
+| f153 | add_block | db |
+| f154 | rename_block | db |
+| f155 | delete_block | db |
+| f156 | create_student | db |
+| f157 | OnboardingView | ui |
+| f158 | SettingsView | ui |
 
 ## Types (tN)
 
