@@ -8,6 +8,61 @@
 
 ---
 
+## Human Revelations — Invented Techniques
+
+*Novel ideas that came from human insight, not AI suggestion. These are original contributions to the field.*
+
+### 30-Second Window Capture — Voice-to-Sticker in the Pickup Line (March 2026)
+
+**Invention:** An offline mobile app designed for one specific moment: the 30 seconds between a child exiting the classroom and reaching the parent's car. Voice dictation captures behavioral observations, a heuristic parser extracts sticker-worthy behaviors, and the sticker score updates before the car door opens.
+
+**The Problem:** Behavioral observation in education requires immediate capture. Teachers use paper checklists during class. Parents get end-of-day summaries. Nobody captures the transition moments — hallway behavior, peer interactions during pickup, self-regulation during handoff — because the window is 30 seconds and both hands are occupied (holding a child, a backpack, car keys).
+
+**The Insight:** Voice input is the only interface that works when both hands are occupied and the window is 30 seconds. But voice-to-text is slow (cloud STT), imprecise (general-purpose models don't understand behavioral language), and requires network (school pickup zones have spotty cell service). The solution: offline Whisper on-device, a domain-specific behavioral parser, and a sticker scoring system designed by an educator — not a software engineer.
+
+**The Technique:**
+1. Dioxus mobile UI with thumb-zone layout — designed for one-handed operation
+2. cpal microphone capture with 16kHz resampling for Whisper compatibility
+3. Candle Whisper scaffold for offline STT (no cloud, no network required)
+4. Heuristic behavior parser: extracts sticker-worthy phrases from transcription (e.g., "shared with friend" = 2 stickers, "hit another student" = -1 sticker)
+5. Schedule blocks: morning/afternoon/pickup — context-aware scoring
+6. Daily report: shareable summary of observations and sticker counts
+
+**Result:** An educator captures a behavioral observation in the pickup line, the app transcribes and scores it, and the daily report updates — all in the time it takes the child to walk to the car. No internet required. No cloud dependency.
+
+**Named:** 30-Second Window Capture
+**Commit:** `5cb79ea` through `fce7ce2` (initial sprint)
+**Origin:** Michael Cochran's experience as a parent and educator. The behavioral observation gap isn't a technology problem — it's a timing problem. The 30-second window exists every school day, twice a day, and nobody captures it because existing tools require a desk, a screen, and both hands.
+
+### Sticker Economy Behavioral Model (March 2026)
+
+**Invention:** A behavioral scoring system based on the sticker economy used in real classrooms — specific behaviors earn specific sticker counts, daily goals drive motivation, and the scoring rules are designed by an educator, not an algorithm.
+
+**The Problem:** Behavioral tracking apps use generic rating scales (1-5 stars, thumbs up/down). These don't match how teachers actually track behavior. In real classrooms, specific behaviors earn specific rewards — "helped a classmate" = 2 stickers, "completed homework" = 1 sticker, "disrupted class" = -1 sticker. The scoring is domain-specific and varies by classroom.
+
+**The Insight:** The sticker economy is already the lingua franca of elementary education. Every teacher uses it. Every child understands it. The app should use stickers as the native unit, not stars or points. And the scoring rules should be editable by the teacher — because a kindergarten class values different behaviors than a 5th-grade class.
+
+**The Technique:**
+1. Sticker values per behavior: positive behaviors earn stickers, negative behaviors subtract
+2. Daily goal: configurable per student (e.g., 15 stickers/day)
+3. Progress display: "4 / 15 Stickers" with visual indicator
+4. Schedule-aware: behaviors are tagged with time block (morning, afternoon, pickup)
+5. Undo: last observation can be undone (because kids are kids and sometimes the adult misheard)
+
+**Result:** The scoring model matches what teachers already do on paper. No training required. No new mental model. Just the same sticker economy, digitized, with voice input.
+
+**Named:** Sticker Economy Model
+**Commit:** `287bd51` (student CRUD + progress), `e4a7e66` (daily report)
+**Origin:** Every elementary classroom Michael Cochran's children attended used sticker charts. The behavioral model is the sticker chart — formalized into a database schema.
+
+### 2026-04-08 — Human Revelations Documentation Pass
+
+**What:** Documented novel human-invented techniques across the full CochranBlock portfolio. Added Human Revelations section with 30-Second Window Capture and Sticker Economy Model.
+**Commit:** See git log
+**AI Role:** AI formatted and wrote the sections. Human identified which techniques were genuinely novel, provided the origin stories, and directed the documentation pass.
+
+---
+
 ## Entries
 
 ### 2026-04-01 — IRONHIVE Bootstrap + Honest README
