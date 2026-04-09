@@ -347,6 +347,16 @@ impl t123 {
         Ok(deleted > 0)
     }
 
+    /// f156=create_student. Insert a new student with given name and goal. Returns id.
+    pub fn f156(&self, name: &str, goal: i32) -> Result<i64> {
+        let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
+        conn.execute(
+            "INSERT INTO students (name, goal_stickers) VALUES (?1, ?2)",
+            params![name, goal],
+        )?;
+        Ok(conn.last_insert_rowid())
+    }
+
     /// f146=delete_sticker. Remove a sticker record for block on date (undo).
     pub fn f146(&self, block_id: i64, date: &str) -> Result<bool> {
         let conn = self.0.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
@@ -1073,5 +1083,254 @@ mod tests {
         assert_eq!(rec.s4, date);
         assert_eq!(rec.s5, t119::Two);
         assert_eq!(rec.s9, Some("Great work".to_string()));
+    }
+
+    // ===== f156=create_student =====
+
+    #[test]
+    fn db_create_student() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        let id = db.f156("Maya", 20).unwrap();
+        assert!(id > 0);
+        let s = db.f141().unwrap().unwrap();
+        assert_eq!(s.s6, id);
+        assert_eq!(s.s7, "Maya");
+        assert_eq!(s.s8, 20);
+    }
+
+    #[test]
+    fn db_create_student_replaces_need_for_f140() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        // No f140 call — fresh DB has no student
+        assert!(db.f141().unwrap().is_none());
+        // f156 creates one
+        db.f156("Alex", 10).unwrap();
+        let s = db.f141().unwrap().unwrap();
+        assert_eq!(s.s7, "Alex");
+        assert_eq!(s.s8, 10);
+    }
+
+    #[test]
+    fn db_create_student_unicode_name() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f156("José García-López", 12).unwrap();
+        let s = db.f141().unwrap().unwrap();
+        assert_eq!(s.s7, "José García-López");
+    }
+
+    #[test]
+    fn db_create_student_then_update() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        let id = db.f156("Sam", 15).unwrap();
+        db.f152(id, "Samantha", 20).unwrap();
+        let s = db.f141().unwrap().unwrap();
+        assert_eq!(s.s7, "Samantha");
+        assert_eq!(s.s8, 20);
+    }
+
+    #[test]
+    fn db_onboarding_flow_no_student_then_create() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        // Simulate onboarding: check no student → create → create schedule
+        assert!(db.f141().unwrap().is_none());
+        db.f156("Teacher's Student", 10).unwrap();
+        db.f123().unwrap();
+        let s = db.f141().unwrap().unwrap();
+        assert_eq!(s.s7, "Teacher's Student");
+        let blocks = db.f124().unwrap();
+        assert_eq!(blocks.len(), 5);
+    }
+
+    // ===== f156 create_student edge cases =====
+
+    #[test]
+    fn db_create_student_empty_name() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        let id = db.f156("", 10).unwrap();
+        let s = db.f141().unwrap().unwrap();
+        assert_eq!(s.s6, id);
+        assert_eq!(s.s7, "");
+    }
+
+    #[test]
+    fn db_create_student_zero_goal() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f156("Test", 0).unwrap();
+        assert_eq!(db.f141().unwrap().unwrap().s8, 0);
+    }
+
+    #[test]
+    fn db_create_student_negative_goal() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f156("Test", -5).unwrap();
+        assert_eq!(db.f141().unwrap().unwrap().s8, -5);
+    }
+
+    #[test]
+    fn db_create_student_sql_injection() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        let name = "'; DROP TABLE students; --";
+        db.f156(name, 10).unwrap();
+        let s = db.f141().unwrap().unwrap();
+        assert_eq!(s.s7, name);
+        assert!(db.f141().is_ok());
+    }
+
+    // ===== cross-module: sticker count after delete =====
+
+    #[test]
+    fn db_count_after_delete_sticker() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        db.f126(blocks[0].s0, "2026-04-01", t119::Two).unwrap();
+        db.f126(blocks[1].s0, "2026-04-01", t119::One).unwrap();
+        assert_eq!(db.f145("2026-04-01").unwrap(), 3);
+        db.f146(blocks[0].s0, "2026-04-01").unwrap();
+        assert_eq!(db.f145("2026-04-01").unwrap(), 1);
+    }
+
+    // ===== f144 list_day_records after block deletion =====
+
+    #[test]
+    fn db_list_day_records_after_delete_block() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let blocks = db.f124().unwrap();
+        db.f126(blocks[0].s0, "2026-04-01", t119::Two).unwrap();
+        db.f155(blocks[0].s0).unwrap();
+        let records = db.f144("2026-04-01").unwrap();
+        assert_eq!(records.len(), 4); // 5 - 1 deleted
+        // deleted block's sticker should be gone
+        for (b, _) in &records {
+            assert_ne!(b.s0, blocks[0].s0);
+        }
+    }
+
+    // ===== f153 add_block after default schedule =====
+
+    #[test]
+    fn db_add_block_after_default_schedule() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f123().unwrap();
+        let before = db.f124().unwrap();
+        assert_eq!(before.len(), 5);
+        db.f153("Science").unwrap();
+        let after = db.f124().unwrap();
+        assert_eq!(after.len(), 6);
+        // new block sort_order should be > all defaults
+        let max_default_order = before.last().unwrap().s2;
+        assert!(after.last().unwrap().s2 > max_default_order);
+    }
+
+    // ===== f155 delete then re-add same name =====
+
+    #[test]
+    fn db_delete_block_then_readd_same_name() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        let id1 = db.f153("Gym").unwrap();
+        db.f126(id1, "2026-04-01", t119::Two).unwrap();
+        db.f155(id1).unwrap();
+        let id2 = db.f153("Gym").unwrap();
+        assert_ne!(id1, id2);
+        // old sticker should be gone
+        assert_eq!(db.f125(id1, "2026-04-01").unwrap(), t119::Zero);
+        // new block starts clean
+        assert_eq!(db.f125(id2, "2026-04-01").unwrap(), t119::Zero);
+    }
+
+    // ===== f123 idempotency after custom blocks =====
+
+    #[test]
+    fn db_ensure_default_schedule_noop_after_custom_blocks() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        db.f153("Custom Only").unwrap();
+        db.f123().unwrap(); // should NOT add defaults since blocks already exist
+        let blocks = db.f124().unwrap();
+        assert_eq!(blocks.len(), 1);
+        assert_eq!(blocks[0].s1, "Custom Only");
+    }
+
+    // ===== full onboarding + scoring + report integration =====
+
+    #[test]
+    fn db_full_workflow_create_score_report() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db = t123::f121(&path).unwrap();
+        // onboarding
+        db.f156("Emma", 10).unwrap();
+        db.f153("Reading").unwrap();
+        db.f153("Writing").unwrap();
+        let student = db.f141().unwrap().unwrap();
+        let blocks = db.f124().unwrap();
+        // score
+        db.f136(blocks[0].s0, "2026-04-01", t119::Two, Some("Focused")).unwrap();
+        db.f126(blocks[1].s0, "2026-04-01", t119::One).unwrap();
+        // verify
+        let records = db.f144("2026-04-01").unwrap();
+        assert_eq!(records.len(), 2);
+        let earned = db.f145("2026-04-01").unwrap();
+        assert_eq!(earned, 3);
+        // report
+        let report = crate::report::f147(&student, "2026-04-01", &records, earned);
+        assert!(report.contains("Emma's Sticker Report"));
+        assert!(report.contains("3 / 10 stickers"));
+        assert!(report.contains("Reading"));
+        assert!(report.contains("Focused"));
+        assert!(report.contains("Writing"));
+    }
+
+    // ===== concurrent DB access =====
+
+    #[test]
+    fn db_reopen_same_path() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let path = tmp.path().with_extension("db");
+        let db1 = t123::f121(&path).unwrap();
+        db1.f123().unwrap();
+        db1.f126(db1.f124().unwrap()[0].s0, "2026-04-01", t119::Two).unwrap();
+        drop(db1);
+        let db2 = t123::f121(&path).unwrap();
+        let blocks = db2.f124().unwrap();
+        assert_eq!(blocks.len(), 5);
+        assert_eq!(db2.f125(blocks[0].s0, "2026-04-01").unwrap(), t119::Two);
+    }
+
+    // ===== t119 enum round-trip =====
+
+    #[test]
+    fn t119_i32_round_trip() {
+        assert_eq!(t119::Zero as i32, 0);
+        assert_eq!(t119::One as i32, 1);
+        assert_eq!(t119::Two as i32, 2);
     }
 }

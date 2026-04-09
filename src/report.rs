@@ -256,6 +256,36 @@ mod tests {
         assert_eq!(sticker_emoji(t119::Two), "●●");
     }
 
+    #[test]
+    fn generate_daily_report_all_three_sticker_types() {
+        let student = t122 { s6: 1, s7: "Test".to_string(), s8: 10 };
+        let blocks = vec![
+            (t120 { s0: 1, s1: "A".to_string(), s2: 0 }, Some(t121 { s3: 1, s4: "2026-04-01".to_string(), s5: t119::Zero, s9: None })),
+            (t120 { s0: 2, s1: "B".to_string(), s2: 1 }, Some(t121 { s3: 2, s4: "2026-04-01".to_string(), s5: t119::One, s9: None })),
+            (t120 { s0: 3, s1: "C".to_string(), s2: 2 }, Some(t121 { s3: 3, s4: "2026-04-01".to_string(), s5: t119::Two, s9: None })),
+        ];
+        let report = f147(&student, "2026-04-01", &blocks, 3);
+        assert!(report.contains("○ A — Needs work"));
+        assert!(report.contains("● B — Good"));
+        assert!(report.contains("●● C — Great"));
+    }
+
+    #[test]
+    fn generate_daily_report_zero_goal() {
+        let student = t122 { s6: 1, s7: "Test".to_string(), s8: 0 };
+        let report = f147(&student, "2026-04-01", &[], 0);
+        assert!(report.contains("0 / 0 stickers"));
+        assert!(report.contains("Goal met!"));
+    }
+
+    #[test]
+    fn generate_daily_report_earned_exceeds_goal() {
+        let student = t122 { s6: 1, s7: "Test".to_string(), s8: 2 };
+        let report = f147(&student, "2026-04-01", &[], 5);
+        assert!(report.contains("5 / 2 stickers"));
+        assert!(report.contains("Goal met!"));
+    }
+
     /// f147=generate_daily_report empty day
     #[test]
     fn generate_daily_report_empty_day() {

@@ -3,7 +3,7 @@
 [package]
 name = "wowasticker"
 version = "0.2.0"
-edition = "2021"
+edition = "2024"
 description = "Offline-first behavioral sticker chart for educators. Dioxus UI, Candle Whisper, SQLite."
 license = "Unlicense"
 repository = "https://github.com/cochranblock/wowasticker"
