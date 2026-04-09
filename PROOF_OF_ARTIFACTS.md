@@ -30,12 +30,12 @@ flowchart TD
 
 | Metric | Value |
 |--------|-------|
-| Lines of Rust | 3,528 across 11 files (9 modules + 2 binaries) |
+| Lines of Rust | 3,743 across 11 files (8 modules + 3 binaries) |
 | AI model | Whisper-Tiny GGUF (on-device, no cloud) |
 | UI framework | Dioxus 0.5 (pure Rust, mobile-native) |
 | Audio | cpal (cross-platform mic capture) |
 | Storage | rusqlite (bundled SQLite, zero external deps) |
-| Unit tests | 122 (parser heuristics, DB operations, student CRUD, sticker records, daily report, undo, behavior tags, audio stubs, CLI integration, UI helpers) |
+| Unit tests | 151 (parser heuristics, DB operations, student CRUD, sticker records, daily report, undo, behavior tags, audio stubs, CLI integration, UI helpers, onboarding/settings flow) |
 | Quality gate | TRIPLE SIMS via exopack (3-pass determinism) |
 | Schedule blocks | 5 (Cultural Arts, Community Circle, Math, Recess, Lunch) |
 | Sticker values | 3-tier: 0 (concern), 1 (good), 2 (great) |
@@ -86,7 +86,9 @@ Release profile: `opt-level = 'z'`, LTO, `codegen-units = 1`, `panic = 'abort'`,
 | Share to Clipboard | "Share Daily Report" copies formatted report to clipboard via WebView eval |
 | Date Navigation | Browse past days — cards show historical scores and notes, read-only on past dates |
 | Undo | "Undo" button removes last dictation entry, updates progress counter |
-| Student Profile | Default student with configurable goal_stickers — dynamic goal display in UI |
+| Student Profile | Configurable name + goal_stickers via OnboardingView (first run) and SettingsView (gear icon). No hardcoded names in Dioxus UI |
+| Onboarding View | f157: first-run name + daily-goal entry. Calls f156=create_student then ensures default schedule |
+| Settings View | f158: gear icon → edit student name/goal, add/rename/delete schedule blocks. Wires f152-f155 |
 | Progress Counter | `f142()` sums sticker values; UI shows "4 / 15 Stickers" with goal-met state |
 | P13 Tokenization | All public symbols compressed per kova convention (f/t/s tokens) |
 | TRIPLE SIMS | 3-pass test via exopack — real tempfile SQLite, no mocks |
@@ -99,6 +101,23 @@ Release profile: `opt-level = 'z'`, LTO, `codegen-units = 1`, `panic = 'abort'`,
 | WASM Bridge | f151: wasm_get_blocks, wasm_set_sticker, wasm_get_report, wasm_get_progress. In-memory SQLite |
 | Multi-Arch | 12 platform targets. build-all-targets.sh for native + cross builds |
 | Federal Compliance | 11 govdocs: SBOM, SSDF, supply chain, security, accessibility, privacy, FIPS, FedRAMP, CMMC, ITAR/EAR, federal use cases |
+
+## Onboarding + Settings Wired (2026-04-09)
+
+| Surface | Status |
+|---------|--------|
+| OnboardingView (f157) | Wired — first run with no student shows name + goal entry |
+| SettingsView (f158) | Wired — gear icon in main view, accessible from any screen |
+| f156=create_student | New DB method, replaces hardcoded `f140` "Luka" path in Dioxus UI |
+| f152=update_student | Wired to "Save Student" button in settings |
+| f153=add_block | Wired to "Add" button in settings |
+| f154=rename_block | Wired to inline rename UI |
+| f155=delete_block | Wired to "Delete" button (also drops associated sticker_records) |
+| Test count | 151 (129 lib + 12 ui + 10 CLI integration) |
+| Build | `cargo check -p wowasticker`: clean. `cargo test -p wowasticker`: all pass |
+| Commit | `eebeabc` |
+
+Closes BACKLOG item 1. Note: `f140=ensure_default_student` remains in `wasm.rs` / `jni.rs` / `bin/cli.rs` — those frontends still need their own onboarding flows.
 
 ## IRONHIVE Swarm Verification (2026-04-01)
 
@@ -114,7 +133,8 @@ Rust 1.94.x bootstrapped on all 3 nodes. TRIPLE SIMS verified on gd.
 
 ```bash
 cargo build --release -p wowasticker --no-default-features
-cargo test -p wowasticker --no-default-features           # 122 tests
+cargo test -p wowasticker --no-default-features           # 129 lib + 10 CLI integration tests
+cargo test -p wowasticker                                 # 151 total (adds 12 ui tests)
 cargo run -p wowasticker --bin wowasticker-test --features tests  # TRIPLE SIMS
 ```
 

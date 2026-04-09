@@ -65,6 +65,12 @@
 
 ## Entries
 
+### 2026-04-09 — Onboarding + Settings UI Wired (Kill Hardcoded "Luka")
+
+**What:** Wired settings DB CRUD (f152-f156) to the Dioxus UI. New `OnboardingView` (f157) shows on first run when no student exists — name + daily goal entry. New `SettingsView` (f158) accessed via gear icon — edit student name/goal, add/rename/delete schedule blocks. Added `f156=create_student` to db.rs, replacing the hardcoded "Luka" path (`f140`) for the Dioxus desktop frontend. App component routes Onboarding → Main → Settings via new `t126` view-mode enum. Fixed compile by wrapping `db` prop in `use_signal` so 4 closures (Save / Rename / Delete / Add) can each access the `Option<Arc<t123>>` without moving. Bumped Cargo edition to 2024. Tests: 151 total (129 lib + 12 ui + 10 CLI integration), all pass. Closes BACKLOG item 1.
+**Commit:** `eebeabc`
+**AI Role:** AI implemented the wiring, fixed the move errors, and ran the test suite. Human directed the BACKLOG priority and the "no hardcoded names" requirement.
+
 ### 2026-04-01 — IRONHIVE Bootstrap + Honest README
 
 **What:** Bootstrapped Rust 1.94.x on 3 IRONHIVE nodes (lf, gd, st). Swarm-verified 40 tests + Linux x86_64 release build (1.5 MB on gd). Full guest audit scored app: DB 9/10, code quality 9/10, voice 0/10 (stub). Found `sticker_records` has no `student_id` — multi-student broken at schema level. Updated README with honest "What Works" vs "What's Scaffolded" sections. Added cochranblock.org headers/footers to all 11 govdocs. Cross-linked POA, TOI, and USER_STORY_ANALYSIS. Planned next phase: settings → Whisper inference → multi-student.
