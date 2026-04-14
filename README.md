@@ -15,7 +15,7 @@
 
 # wowasticker
 
-Pure Rust, offline-first mobile app for student behavioral goals. SQLite persistence, thumb-zone optimized UI. Manual tap-to-score (0/1/2) works today. Voice dictation via Candle Whisper is wired end-to-end (mel → encoder → decoder → tokenizer). Desktop GUI build has a wry API mismatch; CLI binary builds and runs on all platforms.
+Pure Rust, offline-first mobile app for student behavioral goals. SQLite persistence, thumb-zone tight UI. Manual tap-to-score (0/1/2) works today. Voice dictation via Candle Whisper is wired end-to-end (mel → encoder → decoder → tokenizer). Desktop GUI build has a wry API mismatch; CLI binary builds and runs on all platforms.
 
 ## Architecture
 

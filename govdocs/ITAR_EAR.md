@@ -70,7 +70,7 @@ Per BIS (Bureau of Industry and Security) guidance, publicly available encryptio
 | EAR | Yes (minimally) | EAR99 — no license required |
 | EAR Cat 5 Part 2 | No | No encryption used |
 
-No export license is required to distribute wowasticker to any destination, with the exception of comprehensively sanctioned countries/entities per OFAC regulations (which apply to all US-origin items regardless of classification).
+No export license is required to distribute wowasticker to any destination, with the exception of fully sanctioned countries/entities per OFAC regulations (which apply to all US-origin items regardless of classification).
 
 ---
 
