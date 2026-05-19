@@ -1,0 +1,13 @@
+[book]
+title = "wowasticker"
+description = "Offline dictation app. No network required. Privacy-first."
+src = "src"
+language = "en"
+
+[output.html]
+git-repository-url = "https://github.com/cochranblock/wowasticker"
+site-url = "/wowasticker/"
+default-theme = "coal"
+preferred-dark-theme = "coal"
+additional-css = ["theme/custom.css"]
+additional-js = ["theme/force-theme.js"]
